@@ -150,6 +150,8 @@ namespace ARRAY_VIEW_NAMESPACE {
 						return section(origin, section_bnd);
 					}
 
+					_CONSTEXPR bool empty() const { return bounds().empty(); }
+
 				protected:
 					_CONSTEXPR any_array_view_base(bounds_type bnd, index_type stride, pointer data) _NOEXCEPT
 						: data_ptr( std::move(data) )
@@ -195,6 +197,10 @@ namespace ARRAY_VIEW_NAMESPACE {
 				using value_type  = typename Base::value_type;
 				using pointer     = typename Base::pointer;
 				using reference   = typename Base::reference;
+
+				using Base::empty;
+
+				typedef pointer iterator;
 
 				_CONSTEXPR array_view() _NOEXCEPT
 					: Base{ {}, {}, nullptr }
@@ -290,6 +296,9 @@ namespace ARRAY_VIEW_NAMESPACE {
 				{
 					return Base::data_ptr;
 				}
+
+				iterator begin() const { return data(); }
+				iterator end() const { return data() + bounds().size(); }
 			};
 
 			template <typename ValueType, int Rank = 1>

@@ -507,6 +507,14 @@ namespace ARRAY_VIEW_NAMESPACE {
 						idx_end[i] = (*this)[i];
 					return const_iterator{ *this, idx_end };
 				}
+
+				_CONSTEXPR bool empty() const _NOEXCEPT
+				{
+					for (int i = 0; i < rank; ++i)
+						if (Base::elems[i] == 0)
+							return true;
+					return false;
+				}
 			};
 
 			template <int Rank>
