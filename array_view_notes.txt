@@ -1,0 +1,31 @@
+N4494 rev 6 https://isocpp.org/files/papers/N4494.html
+Rephrased coord.general avoid references to mathematical entites.
+Renamed index to offset.
+Changed int Rank template parameter to size_t Rank throughout the document.
+Made offset, bounds and bounds_iterator binary operators (apart from @= forms) free functions.
+Replaced term "component" with "element" when referring to the individual constituents of offset or bounds.
+In coord.bounds.require replaced prose with an equivalent mathematical expression.
+In coord.bounds.iterator and coord.bounds.iterator.require removed the requirement on bounds_iterator to represent a random access iterator, replacing with "as-if" phrasing.
+In the description of bounds_iterator& operator++() replaced the code snippet with equivalent prose.
+In views.general changed the font back to non-monospace.
+Removed views.require, duplicating it as arrayview.require and stridedarrayview.require.
+Removed redundant assignment operators on array_view and strided_array_view.
+Employed "exposition only" data members is the descriptions of array_view and strided_array_view semantics.
+Rephrased the first paragraph in arrayview.cons to avoid ambiguity in binding of the token "type".
+In constexpr array_view(Viewable&& vw) rephrased the third bullet point.
+The following suggestion was implemented partially:
+
+Instead of the array_view(ArrayType& arr) constructor being completely removed, it has been constrained to 1-D case as the Committee indicated that such case does not exhibit the undefined behavior. We believe that the request to remove it completely was a misstatment.
+
+
+N4346 rev 5 http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4346.html
+
+N4177 rev 4 http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4177.html
+The order of some of the array_view and strided_array_view constructor parameters have been switched from {size, location} to {location, size} for consistency with the existing practice in STL (vide copy_n).
+
+Alias templates for constant views have been introduced.
+     // Views alias templates
+      template <class T, int Rank = 1>
+        using carray_view = array_view<const T, Rank>;
+      template <class T, int Rank = 1>
+        using cstrided_array_view = strided_array_view<const T, Rank>;
