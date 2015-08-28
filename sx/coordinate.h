@@ -1,0 +1,8 @@
+#ifndef COORDINATE_INCLUDED_70220934203
+#define COORDINATE_INCLUDED_70220934203
+
+namespace sx {
+    
+}
+
+#endif
