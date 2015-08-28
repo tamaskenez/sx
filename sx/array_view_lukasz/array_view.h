@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef _IMPL_ARRAY_VIEW_H_
 #define _IMPL_ARRAY_VIEW_H_ 1
 
@@ -8,9 +6,7 @@
 #include <utility>
 #include "coordinate.h"
 
-namespace std {
-	namespace experimental {
-		namespace D4087 {
+namespace ARRAY_VIEW_NAMESPACE {
 
 			template <typename ValueType, int Rank> class array_view;
 			template <typename ValueType, int Rank> class strided_array_view;
@@ -78,10 +74,10 @@ namespace std {
 				{};
 
 				template <typename T>
-				struct is_array_view_oracle : false_type
+				struct is_array_view_oracle : std::false_type
 				{};
 				template <typename T, int N>
-				struct is_array_view_oracle<array_view<T, N>> : true_type
+				struct is_array_view_oracle<array_view<T, N>> : std::true_type
 				{};
 
 				template <typename T>
@@ -272,7 +268,7 @@ namespace std {
 				// Returns a slice of the view.
 				// Preconditions: slice < (*this).bounds()[0]
 				template <int _dummy_rank = rank>
-				_CONSTEXPR typename details::slice_return_type<std::experimental::D4087::array_view, value_type, Rank>::type
+				_CONSTEXPR typename details::slice_return_type<ARRAY_VIEW_NAMESPACE::array_view, value_type, Rank>::type
 					operator[](typename std::enable_if<_dummy_rank != 1, typename index_type::value_type>::type slice) const
 				{
 					static_assert(_dummy_rank == rank, "_dummy_rank must have the default value!");
@@ -281,7 +277,7 @@ namespace std {
 					index_type idx;
 					idx[0] = slice;
 
-					std::experimental::D4087::bounds<rank - 1> bound;
+					ARRAY_VIEW_NAMESPACE::bounds<rank - 1> bound;
 					for (int i = 1; i < rank; ++i)
 					{
 						bound[i - 1] = Base::bnd[i];
@@ -358,7 +354,7 @@ namespace std {
 				// Returns a slice of the view.
 				// Preconditions: slice < (*this).bounds()[0]
 				template <int _dummy_rank = rank>
-				_CONSTEXPR details::slice_return_type_t<std::experimental::D4087::strided_array_view, value_type, Rank>
+				_CONSTEXPR details::slice_return_type_t<ARRAY_VIEW_NAMESPACE::strided_array_view, value_type, Rank>
 					operator[](typename std::enable_if<_dummy_rank != 1, typename index_type::value_type>::type slice) const _NOEXCEPT
 				{
 					static_assert(_dummy_rank == rank, "_dummy_rank must have the default value!");
@@ -367,8 +363,8 @@ namespace std {
 					index_type idx;
 					idx[0] = slice;
 
-					std::experimental::D4087::bounds<rank - 1> bound;
-					std::experimental::D4087::index<rank - 1> stride;
+					ARRAY_VIEW_NAMESPACE::bounds<rank - 1> bound;
+					ARRAY_VIEW_NAMESPACE::index<rank - 1> stride;
 					for (int i = 1; i < rank; ++i)
 					{
 						bound[i - 1] = Base::bnd[i];
@@ -378,8 +374,6 @@ namespace std {
 					return{ bound, stride, &operator[](idx) };
 				}
 			};
-		}
-	}
-} // namespace std::experimental::D4087
+}
 
 #endif // _IMPL_ARRAY_VIEW_H_

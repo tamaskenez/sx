@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef _IMPL_COORDINATE_H_
 #define _IMPL_COORDINATE_H_ 1
 
@@ -7,11 +5,13 @@
 #include <iterator>
 #include <type_traits>
 
+#ifdef _MSC_VER
 #define _CONSTEXPR
+#else
+#define _CONSTEXPR constexpr
+#endif
 
-namespace std {
-	namespace experimental {
-		namespace D4087 {
+namespace ARRAY_VIEW_NAMESPACE {
 			
 			namespace details
 			{
@@ -511,7 +511,7 @@ namespace std {
 
 			template <int Rank>
 			struct bounds_iterator
-				: public iterator<random_access_iterator_tag,
+				: public std::iterator<std::random_access_iterator_tag,
 					index<Rank>,
 					ptrdiff_t,
 					const details::arrow_proxy<index<Rank>>,
@@ -723,7 +723,7 @@ namespace std {
 
 			template <>
 			struct bounds_iterator<1>
-				: public iterator<random_access_iterator_tag,
+				: public std::iterator<std::random_access_iterator_tag,
 				index<1>,
 				ptrdiff_t,
 				const details::arrow_proxy<index<1>>,
@@ -847,8 +847,6 @@ namespace std {
 			{
 				return rhs + n;
 			}
-		}
-	}
-} // namespace std::experimental::D4087
+} // namespace ARRAY_VIEW_NAMESPACE
 
 #endif // _IMPL_COORDINATE_H_
