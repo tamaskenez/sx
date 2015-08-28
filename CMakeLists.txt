@@ -3,6 +3,11 @@ project(sx)
 
 include(CMakePrintHelpers)
 
+if(NOT MSVC)
+  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD_REQUIRED 1)
+endif()
+
 file(GLOB_RECURSE files sx/*.h sx/*.cpp)
 
 add_library(sx STATIC ${files})

@@ -277,16 +277,16 @@ namespace ARRAY_VIEW_NAMESPACE {
 
 				// Preconditions: il.size() == rank
 				_CONSTEXPR index(std::initializer_list<value_type> il)
+                : value(begin(il)[0])
 				{
 					assert(il.size() == rank);
-					value = begin(il)[0];
 				}
 
 				// Preconditions: component_idx < rank
 				_CONSTEXPR reference operator[](size_type component_idx) _NOEXCEPT
 				{
 					assert(component_idx == 0);
-					(component_idx);
+					(void)component_idx;
 					return value;
 				}
 
@@ -294,7 +294,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 				_CONSTEXPR const_reference operator[](size_type component_idx) const _NOEXCEPT
 				{
 					assert(component_idx == 0);
-					(component_idx);
+					(void)component_idx;
 					return value;
 				}
 
@@ -525,6 +525,16 @@ namespace ARRAY_VIEW_NAMESPACE {
 					const details::arrow_proxy<index<Rank>>,
 					const index<Rank>>
 			{
+                typedef std::iterator<std::random_access_iterator_tag,
+                    index<Rank>,
+                    ptrdiff_t,
+                    const details::arrow_proxy<index<Rank>>,
+                    const index<Rank>> super_type;
+
+                using reference       = typename super_type::reference;
+                using pointer         = typename super_type::pointer;
+                using difference_type = typename super_type::difference_type;
+
 				// Preconditions: bnd.contains(curr) unless bnd.size() == 0
 				explicit bounds_iterator(bounds<Rank> bnd, index<Rank> curr = index<Rank>{}) _NOEXCEPT
 					: bnd( std::move(bnd) )

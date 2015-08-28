@@ -298,7 +298,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 				}
 
 				iterator begin() const { return data(); }
-				iterator end() const { return data() + bounds().size(); }
+				iterator end() const { return data() + this->bounds().size(); }
 			};
 
 			template <typename ValueType, int Rank = 1>
