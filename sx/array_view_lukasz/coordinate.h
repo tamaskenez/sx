@@ -238,8 +238,9 @@ namespace ARRAY_VIEW_NAMESPACE {
 				using value_type      = typename Base::value_type;
 
 				_CONSTEXPR index() _NOEXCEPT : Base(){}
-				template <typename = std::enable_if_t<rank == 1>>
-				_CONSTEXPR index(value_type e0) _NOEXCEPT : Base(e0){}
+				explicit _CONSTEXPR index(value_type e0) _NOEXCEPT : Base(e0) {
+                    static_assert(rank == 1, "Single-parameter ctor enabled only when rank == 1");
+                }
 				_CONSTEXPR index(std::initializer_list<value_type> il) : Base(il){}
 
 				using Base::operator[];
@@ -418,10 +419,10 @@ namespace ARRAY_VIEW_NAMESPACE {
 
 				_CONSTEXPR bounds() _NOEXCEPT : Base(){}
 
-				template <typename = std::enable_if_t<rank == 1>>
-				_CONSTEXPR bounds(value_type e0)
+				explicit _CONSTEXPR bounds(value_type e0)
 					: Base(e0)
 				{
+                    static_assert(rank == 1, "Single-parameter ctor enabled only when rank == 1");
 					assert(e0 >= 0);
 				}
 
