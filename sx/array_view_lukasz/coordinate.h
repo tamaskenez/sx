@@ -419,7 +419,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 
 				_CONSTEXPR bounds() _NOEXCEPT : Base(){}
 
-				explicit _CONSTEXPR bounds(value_type e0)
+				_CONSTEXPR bounds(value_type e0)
 					: Base(e0)
 				{
                     static_assert(rank == 1, "Single-parameter ctor enabled only when rank == 1");
