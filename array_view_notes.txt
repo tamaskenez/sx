@@ -42,6 +42,8 @@ Alias templates for constant views have been introduced.
 
 
 
+reference multiarray implementations:
+boost, array_view, n4355, julia, matlab, c++
 
 more suggestions:
 
@@ -65,3 +67,5 @@ more suggestions:
 - N4355 style ordering tag
 - iteration, slicing indep of ordering
 - random access container
+dimensions:
+shape, bounds, size, size, size, extent
