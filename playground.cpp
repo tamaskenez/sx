@@ -5,7 +5,7 @@
 #include <string>
 #include <random>
 #include <list>
-
+#include "sx/abbrev.h"
 #include <utility>
 
 const int N = 10;
@@ -22,7 +22,22 @@ auto report = []() {
 //    printf("\n");
 };
 
+template<typename RT>
+void ff(sx::strided_array_view<RT>) {
+    using T = std::add_const_t<RT>;
+}
 
+template<typename T>
+void pff(const T*) {}
+
+
+void fff() {
+    sx::strided_array_view<int> av;
+    av[0] = 1;
+    ff(av);
+    int*p;
+    pff(p);
+}
 
 void f() {
     for(int i = 0; i < N; ++i) {
@@ -52,6 +67,19 @@ void f() {
 }
 
 int main(int argc, char* argv[]) {
+    std::vector<int> a(6);
+    std::iota(BEGINEND(a), 0);
+    sx::strided_array_view<int, 2> si({2,3},{3,1}, a.data());
+    sx::strided_array_view<int, 2> sj({2,3},{1,2}, a.data());
+
+    for(auto p: {si, sj}){
+        for(int r = 0; r < p.bounds()[0]; ++r) {
+            for(int c = 0; c < p.bounds()[1]; ++c) {
+                printf("%d ", p[{r, c}]);
+            }
+            printf("\n");
+        }
+    }
     f();
     return 0;
 }

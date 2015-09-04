@@ -8,7 +8,6 @@
 
 namespace ARRAY_VIEW_NAMESPACE {
 
-			template <typename ValueType, int Rank> class array_view;
 			template <typename ValueType, int Rank> class strided_array_view;
 
 			namespace details
@@ -23,8 +22,8 @@ namespace ARRAY_VIEW_NAMESPACE {
 				template <size_t N> struct make_seq;
 				template <size_t N> using  make_seq_t = typename make_seq<N>::type;
 
-				template <size_t N> struct make_seq    { using type = append_1_t<make_seq_t<N - 1>>; };
-				template <>         struct make_seq<0> { using type = index_seq<>; };
+				template <size_t N> struct make_seq	{ using type = append_1_t<make_seq_t<N - 1>>; };
+				template <>		 struct make_seq<0> { using type = index_seq<>; };
 
 				template <typename T, size_t... I>
 				_CONSTEXPR bounds<sizeof...(I)> make_bounds_inner(index_seq<I...>) _NOEXCEPT
@@ -74,14 +73,14 @@ namespace ARRAY_VIEW_NAMESPACE {
 				{};
 
 				template <typename T>
-				struct is_array_view_oracle : std::false_type
+				struct is_strided_array_view_oracle : std::false_type
 				{};
 				template <typename T, int N>
-				struct is_array_view_oracle<array_view<T, N>> : std::true_type
+				struct is_strided_array_view_oracle<strided_array_view<T, N>> : std::true_type
 				{};
 
 				template <typename T>
-				struct is_array_view : is_array_view_oracle<std::decay_t<T>>
+				struct is_strided_array_view : is_strided_array_view_oracle<std::decay_t<T>>
 				{};
 
 				template <template <typename, int> class ViewType, typename ValueType, int Rank>
@@ -102,7 +101,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 					using bounds_type = bounds<rank>;
 					using size_type   = size_t;
 					using value_type  = ValueType;
-					using pointer     = ValueType*;
+					using pointer	 = ValueType*;
 					using reference   = ValueType&;
 
 					_CONSTEXPR bounds_type bounds() const _NOEXCEPT
@@ -183,125 +182,6 @@ namespace ARRAY_VIEW_NAMESPACE {
 			} // namespace details
 
 			template <typename ValueType, int Rank = 1>
-			class array_view : public details::any_array_view_base<ValueType, Rank>
-			{
-				using Base = details::any_array_view_base<ValueType, Rank>;
-				template <typename AnyValueType, int AnyRank> friend class array_view;
-				template <typename AnyValueType, int AnyRank> friend class strided_array_view;
-
-			public:
-				using Base::rank;
-				using index_type  = typename Base::index_type;
-				using bounds_type = typename Base::bounds_type;
-				using size_type   = typename Base::size_type;
-				using value_type  = typename Base::value_type;
-				using pointer     = typename Base::pointer;
-				using reference   = typename Base::reference;
-
-				using Base::empty;
-
-				typedef pointer iterator;
-
-				_CONSTEXPR array_view() _NOEXCEPT
-					: Base{ {}, {}, nullptr }
-				{
-				}
-
-				template <typename Viewable,
-					typename = std::enable_if_t<rank == 1
-						&& details::is_viewable<Viewable, value_type>::value
-						&& !details::is_array_view<Viewable>::value>>
-				_CONSTEXPR array_view(Viewable&& cont)
-					: Base{ static_cast<typename bounds_type::value_type>(cont.size()), 1, cont.data() }
-				{
-				}
-
-				template <typename ViewValueType, int ViewRank,
-					typename = std::enable_if_t<rank == 1
-						&& std::is_convertible<std::add_pointer_t<ViewValueType>, pointer>::value
-						&& std::is_same<std::remove_cv_t<ViewValueType>, std::remove_cv_t<value_type>>::value>>
-				_CONSTEXPR array_view(const array_view<ViewValueType, ViewRank>& rhs) _NOEXCEPT
-					: Base{ static_cast<typename bounds_type::value_type>(rhs.size()), 1, rhs.data() }
-				{
-				}
-
-				// Preconditions: product of the ArrayType extents must be <= ptrdiff_t max.
-				template <typename ArrayType,
-					typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<std::remove_all_extents_t<ArrayType>>, pointer>::value
-						&& std::is_same<std::remove_cv_t<std::remove_all_extents_t<ArrayType>>, std::remove_cv_t<value_type>>::value
-						&& std::rank<ArrayType>::value == rank>>
-				_CONSTEXPR array_view(ArrayType& data) _NOEXCEPT
-					: Base{ details::make_bounds<ArrayType>(), details::make_stride(details::make_bounds<ArrayType>()),
-					        details::to_pointer(data) }
-				{
-				}
-
-				template <typename ViewValueType,
-					typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<ViewValueType>, pointer>::value
-						&& std::is_same<std::remove_cv_t<ViewValueType>, std::remove_cv_t<value_type>>::value>>
-				_CONSTEXPR array_view(const array_view<ViewValueType, rank>& rhs) _NOEXCEPT
-					: Base{ rhs.bnd, rhs.srd, rhs.data_ptr }
-				{
-				}
-
-				// Preconditions: bounds.size() <= cont.size()
-				template <typename Viewable,
-					typename = std::enable_if_t<details::is_viewable<Viewable, value_type>::value>>
-				_CONSTEXPR array_view(bounds_type bounds, Viewable&& cont)
-					: Base{ bounds, details::make_stride(bounds), cont.data() }
-				{
-					assert(Base::bnd.size() <= cont.size());
-				}
-
-				_CONSTEXPR array_view(bounds_type bounds, pointer data)
-					: Base{ bounds, details::make_stride(bounds), data }
-				{
-				}
-
-				template <typename ViewValueType,
-					typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<ViewValueType>, pointer>::value
-						&& std::is_same<std::remove_cv_t<ViewValueType>, std::remove_cv_t<value_type>>::value>>
-				_CONSTEXPR array_view& operator=(const array_view<ViewValueType, rank>& rhs) _NOEXCEPT
-				{
-					Base::bnd = rhs.bnd;
-					Base::srd = rhs.srd;
-					Base::data_ptr = rhs.data_ptr;
-					return *this;
-				}
-
-				using Base::operator[];
-
-				// Returns a slice of the view.
-				// Preconditions: slice < (*this).bounds()[0]
-				template <int _dummy_rank = rank>
-				_CONSTEXPR typename details::slice_return_type<ARRAY_VIEW_NAMESPACE::array_view, value_type, Rank>::type
-					operator[](typename std::enable_if<_dummy_rank != 1, typename index_type::value_type>::type slice) const
-				{
-					static_assert(_dummy_rank == rank, "_dummy_rank must have the default value!");
-					assert(slice < Base::bnd[0]);
-
-					index_type idx;
-					idx[0] = slice;
-
-					ARRAY_VIEW_NAMESPACE::bounds<rank - 1> bound;
-					for (int i = 1; i < rank; ++i)
-					{
-						bound[i - 1] = Base::bnd[i];
-					}
-
-					return{ bound, &operator[](idx) };
-				}
-
-				_CONSTEXPR pointer data() const _NOEXCEPT
-				{
-					return Base::data_ptr;
-				}
-
-				iterator begin() const { return data(); }
-				iterator end() const { return data() + this->bounds().size(); }
-			};
-
-			template <typename ValueType, int Rank = 1>
 			class strided_array_view : public details::any_array_view_base<ValueType, Rank>
 			{
 				using Base = details::any_array_view_base<ValueType, Rank>;
@@ -321,14 +201,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 				{
 				}
 
-				template <typename ViewValueType,
-					typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<ViewValueType>, pointer>::value
-						&& std::is_same<std::remove_cv_t<ViewValueType>, std::remove_cv_t<value_type>>::value>>
-				_CONSTEXPR strided_array_view(const array_view<ViewValueType, rank>& rhs) _NOEXCEPT
-					: Base{ rhs.bnd, rhs.srd, rhs.data_ptr }
-				{
-				}
-
+				// copy ctor
 				template <typename ViewValueType,
 					typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<ViewValueType>, pointer>::value
 						&& std::is_same<std::remove_cv_t<ViewValueType>, std::remove_cv_t<value_type>>::value>>
@@ -337,6 +210,18 @@ namespace ARRAY_VIEW_NAMESPACE {
 				{
 				}
 
+                template <typename ViewValueType,
+                    typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<ViewValueType>, pointer>::value
+                        && std::is_same<std::remove_cv_t<ViewValueType>, std::remove_cv_t<value_type>>::value>>
+                _CONSTEXPR strided_array_view& assign_view(const strided_array_view<ViewValueType, rank>& rhs) _NOEXCEPT
+                {
+                    Base::bnd = rhs.bnd;
+                    Base::srd = rhs.srd;
+                    Base::data_ptr = rhs.data_ptr;
+                    return *this;
+                }
+
+                // fundamental explicit ctor
 				// Preconditions:
 				//   - for any index idx, if bounds().contains(idx),
 				//     for i = [0,rank), idx[i] * stride[i] must be representable as ptrdiff_t
@@ -347,17 +232,30 @@ namespace ARRAY_VIEW_NAMESPACE {
 				{
 				}
 
-				template <typename ViewValueType,
-					typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<ViewValueType>, pointer>::value
-						&& std::is_same<std::remove_cv_t<ViewValueType>, std::remove_cv_t<value_type>>::value>>
-				_CONSTEXPR strided_array_view& operator=(const strided_array_view<ViewValueType, rank>& rhs) _NOEXCEPT
+				// from Viewable (has size, data) which is not array_view, only if this->rank == 1
+				template <typename Viewable,
+					typename = std::enable_if_t<rank == 1
+						&& details::is_viewable<Viewable, value_type>::value
+							&& !details::is_strided_array_view<Viewable>::value>>
+				_CONSTEXPR strided_array_view(Viewable&& cont)
+					: Base{ static_cast<typename bounds_type::value_type>(cont.size()), 1, cont.data() }
 				{
-					Base::bnd = rhs.bnd;
-					Base::srd = rhs.srd;
-					Base::data_ptr = rhs.data_ptr;
-					return *this;
 				}
 
+				// from ArrayType
+				// Preconditions: product of the ArrayType extents must be <= ptrdiff_t max.
+				template <typename ArrayType,
+					typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<std::remove_all_extents_t<ArrayType>>, pointer>::value
+						&& std::is_same<std::remove_cv_t<std::remove_all_extents_t<ArrayType>>, std::remove_cv_t<value_type>>::value
+						&& std::rank<ArrayType>::value == rank>>
+				_CONSTEXPR strided_array_view(ArrayType& data) _NOEXCEPT
+					: Base{ details::make_bounds<ArrayType>(), details::make_stride(details::make_bounds<ArrayType>()),
+						details::to_pointer(data) }
+				{
+				}
+
+				/* shallow assign
+				 */
 				using Base::operator[];
 
 				// Returns a slice of the view.
@@ -382,7 +280,24 @@ namespace ARRAY_VIEW_NAMESPACE {
 
 					return{ bound, stride, &operator[](idx) };
 				}
+
+                _CONSTEXPR pointer data() const _NOEXCEPT
+                {
+                    return Base::data_ptr;
+                }
 			};
+
+            template<typename T, typename U, int Rank,
+                typename = std::enable_if_t<
+                    std::is_same<
+                        std::remove_cv_t<T>,
+                        std::remove_cv_t<U>>::value
+                    >>
+            bool is_same_view(const strided_array_view<T, Rank>& x, const strided_array_view<U, Rank>& y) {
+                return x.data() == y.data() &&
+                    x.bounds() == y.bounds() &&
+                    x.stride() == y.stride();
+            }
 }
 
 #endif // _IMPL_ARRAY_VIEW_H_

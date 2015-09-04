@@ -1,3 +1,13 @@
+
+
+N4512 rev 7
+N4494 rev 6
+N4346 rev 5
+N4177 rev 4
+
+N4512 rev 7
+http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4512.html
+
 N4494 rev 6 https://isocpp.org/files/papers/N4494.html
 Rephrased coord.general avoid references to mathematical entites.
 Renamed index to offset.
@@ -29,3 +39,29 @@ Alias templates for constant views have been introduced.
         using carray_view = array_view<const T, Rank>;
       template <class T, int Rank = 1>
         using cstrided_array_view = strided_array_view<const T, Rank>;
+
+
+
+
+more suggestions:
+
+- make_array_view, make_carray_view
+- rutger ter borg, jesse perla paper, minimal additions http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4222.pdf
+- shared/weak proposal http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4355.pdf
+- string_view:
+    op= pointer semantics (shallow)
+    op== value semantics (deep)
+-
+    1. iterating over just the first dimension;
+     2. iterating over a flat view of all of the elements
+- data()
+- more slicing
+- unify array_view and strided array view
+- bounds and index separate types
+- bounds and index could be array
+- to provide data(), iterators()
+- position iterator should be able to extend: col-major, row-major, linear iteration, morton
+- operator()
+- N4355 style ordering tag
+- iteration, slicing indep of ordering
+- random access container
