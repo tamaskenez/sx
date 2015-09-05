@@ -4,5 +4,4 @@
 #define ARRAY_VIEW_NAMESPACE sx
 #include "array_view_lukasz/array_view.h"
 
-
 #endif

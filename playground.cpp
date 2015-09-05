@@ -69,8 +69,8 @@ void f() {
 int main(int argc, char* argv[]) {
     std::vector<int> a(6);
     std::iota(BEGINEND(a), 0);
-    sx::strided_array_view<int, 2> si({2,3},{3,1}, a.data());
-    sx::strided_array_view<int, 2> sj({2,3},{1,2}, a.data());
+    sx::strided_array_view<int, 2> si(a.data(), {2,3},{3,1});
+    sx::strided_array_view<int, 2> sj(a.data(), {2,3},{1,2});
 
     for(auto p: {si, sj}){
         for(int r = 0; r < p.extents()[0]; ++r) {

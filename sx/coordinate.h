@@ -2,7 +2,6 @@
 #define COORDINATE_INCLUDED_70220934203
 
 namespace sx {
-    
 }
 
 #endif
