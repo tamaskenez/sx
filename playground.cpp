@@ -73,8 +73,8 @@ int main(int argc, char* argv[]) {
     sx::strided_array_view<int, 2> sj({2,3},{1,2}, a.data());
 
     for(auto p: {si, sj}){
-        for(int r = 0; r < p.bounds()[0]; ++r) {
-            for(int c = 0; c < p.bounds()[1]; ++c) {
+        for(int r = 0; r < p.extents()[0]; ++r) {
+            for(int c = 0; c < p.extents()[1]; ++c) {
                 printf("%d ", p[{r, c}]);
             }
             printf("\n");

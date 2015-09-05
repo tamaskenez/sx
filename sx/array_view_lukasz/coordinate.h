@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <iterator>
 #include <type_traits>
+#include <array>
 
 #ifdef _MSC_VER
 #define _CONSTEXPR
@@ -17,6 +18,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 			{
 				template <typename ConcreteType, typename ValueType, int Rank>
 				class coordinate_facade
+        : public std::array<ValueType, Rank>
 				{
 					static_assert(std::is_fundamental<ValueType>::value, "ValueType must be fundamental!");
 					static_assert(Rank > 0, "Rank must be greater than 0!");
@@ -27,19 +29,20 @@ namespace ARRAY_VIEW_NAMESPACE {
 					using size_type       = size_t;
 					using value_type      = ValueType;
 					static const int rank = Rank;
+          using super_type = std::array<ValueType, Rank>;
+          using super_type::operator[];
 
 					_CONSTEXPR coordinate_facade() _NOEXCEPT
 					{
 						static_assert(std::is_base_of<coordinate_facade, ConcreteType>::value, "ConcreteType must be derived from coordinate_facade.");
-						for (int i = 0; i < rank; ++i)
-							elems[i] = {};
+          fill(ValueType{});
 					}
 
 					_CONSTEXPR coordinate_facade(value_type e0) _NOEXCEPT
 					{
 						static_assert(std::is_base_of<coordinate_facade, ConcreteType>::value, "ConcreteType must be derived from coordinate_facade.");
 						static_assert(rank == 1, "This constructor can only be used with rank == 1.");
-						elems[0] = e0;
+						(*this)[0] = e0;
 					}
 
 					// Preconditions: il.size() == rank
@@ -47,41 +50,11 @@ namespace ARRAY_VIEW_NAMESPACE {
 					{
 						static_assert(std::is_base_of<coordinate_facade, ConcreteType>::value, "ConcreteType must be derived from coordinate_facade.");
 						assert(il.size() == rank);
-						for (int i = 0; i < rank; ++i)
-						{
-							elems[i] = begin(il)[i];
-						}
+            std::copy_n(super_type::begin(), rank, il.begin());
 					}
 
 				protected:
 					coordinate_facade& operator=(const coordinate_facade& rhs) = default;
-
-					// Preconditions: component_idx < rank
-					_CONSTEXPR reference operator[](size_type component_idx)
-					{
-						return elems[component_idx];
-					}
-
-					// Preconditions: component_idx < rank
-					_CONSTEXPR const_reference operator[](size_type component_idx) const
-					{
-						return elems[component_idx];
-					}
-
-					_CONSTEXPR bool operator==(const ConcreteType& rhs) const _NOEXCEPT
-					{
-						for (int i = 0; i < rank; ++i)
-						{
-							if (elems[i] != rhs.elems[i])
-								return false;
-						}
-						return true;
-					}
-
-					_CONSTEXPR bool operator!=(const ConcreteType& rhs) const _NOEXCEPT
-					{
-						return !(to_concrete() == rhs);
-					}
 
 					_CONSTEXPR ConcreteType operator+() const _NOEXCEPT
 					{
@@ -186,8 +159,6 @@ namespace ARRAY_VIEW_NAMESPACE {
 							elems[i] /= v;
 						return to_concrete();
 					}
-
-					value_type elems[rank];
 
 				private:
 					_CONSTEXPR const ConcreteType& to_concrete() const _NOEXCEPT

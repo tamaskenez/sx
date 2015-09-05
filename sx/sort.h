@@ -4,20 +4,6 @@
 
 namespace sx {
 
-	namespace detail {
-		template<typename SizeType, std::size_t Rank>
-		struct enumerate_elems_except_along_one_dim {
-			std::array<SizeType, Rank>& extents;
-			std::size_t dim;
-			enumerate_elems_except_along_one_dim(
-				const std::array<SizeType, Rank>& extents, std::size_t dim)
-				: extents(extents)
-				, dim(dim)
-				{}
-			)
-		}
-	}
-  
   template<typename ForwardItLower, typename ForwardItValue, typename ForwardItUpper>
   bool next_variation(
                  ForwardItLower lower_bounds,
@@ -35,9 +21,9 @@ namespace sx {
     return false;
   }
 
-	template<typename R, std::size_t Rank,
+	template<typename R, rank_type Rank,
 	typename = std::enable_if_t<!std::is_const<R>::value>>
-	void sortperm_inplace(strided_array_view<R, Rank> X, std::size_t dim = 0) {
+	void sortperm_inplace(strided_array_view<R, Rank> X, rank_type dim = 0) {
 		using ResultArray = strided_array_view<R, Rank>;
 
 		// iterate over X, leaving out the 'dim' dimension
@@ -57,10 +43,10 @@ namespace sx {
 		}
 	}
 
-	template<typename T, std::size_t Rank>
+	template<typename T, rank_type Rank>
 	multi_array<typename std::remove_const<T>::type, Rank>
-	sort(strided_array_view<T, Rank> X, std::size_t dim = 0) {
-		using V = std::remove_const<T>::type;
+	sort(strided_array_view<T, Rank> X, rank_type dim = 0) {
+		using V = typename std::remove_const<T>::type;
 		using ResultArray = multi_array<V, Rank>;
 
 		ResultArray R(X.extents());
@@ -70,14 +56,14 @@ namespace sx {
 
 	// like Julia's sortperm
 	// sorts along 'dim' dimension
-	template<typename T, typename U, std::size_t Rank>
-  multi_array<T, Rank> sortperm(strided_array_view<U, Rank> X, std::size_t dim = 0) {
+	template<typename T, typename U, rank_type Rank>
+  multi_array<T, Rank> sortperm(strided_array_view<U, Rank> X, int dim = 0) {
     using ResultArray = multi_array<T, Rank>;
     ResultArray R(X.extents());
     
-    std::vector<T> w(v.extents(dim));
+    std::vector<T> w(X.extents(dim));
 
-    // iterate over X, leaving out the 'dim' dimension
+    // iterate over X, fixing it[dim] to 0
     std::array<typename ResultArray::size_type, Rank> lower_bounds, it, e;
     lower_bounds.fill(0);
     it.fill(0);
@@ -88,14 +74,19 @@ namespace sx {
       auto rbegin = &R[it];
       auto rend = rbegin + R.extents(dim) * R.strides(dim);
       std::iota(rbegin, rend, 0);
-      auto xbegin = ;
-      std::copy_n(&X[it], X.extents(dim), w.begin());
+      auto xv = X.subvector(it, dim, {0, end});
+      std::copy(xv.begin(), xv.end(), w.begin());
       std::sort(
               make_random_access_iterator_pair(w.begin(), rbegin),
-              make_random_access_iterator_pair(w.end(), rend));
-      }
-      return ix;
-	}
+              make_random_access_iterator_pair(w.end(), rend)
+                );
+      
+      R.subvector(it, dim, {0, end}) = w;
+
+      if(!next_variation(lower_bounds.begin(), it.begin(), X.extents().begin()))
+          break;
+    }
+  }
 }
 
 #endif

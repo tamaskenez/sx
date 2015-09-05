@@ -8,7 +8,12 @@
 
 namespace ARRAY_VIEW_NAMESPACE {
 
-			template <typename ValueType, int Rank> class strided_array_view;
+  using rank_type  = std::size_t;
+  using index_type = std::size_t;
+  using size_type  = std::size_t;
+  using extent_type = std::size_t;
+
+      template <typename ValueType, rank_type Rank> class strided_array_view;
 
 			namespace details
 			{
@@ -39,7 +44,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 				}
 
 				// Make a stride vector from bounds, assuming continugous memory.
-				template <int Rank>
+				template <rank_type Rank>
 				_CONSTEXPR index<Rank> make_stride(const bounds<Rank>& bnd) _NOEXCEPT
 				{
 					index<Rank> stride;
@@ -57,7 +62,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 					return &t;
 				}
 
-				template <typename T, int N>
+				template <typename T, rank_type N>
 				_CONSTEXPR std::remove_all_extents_t<T>* to_pointer(T(&t)[N]) _NOEXCEPT
 				{
 					return to_pointer(t[0]);
@@ -75,7 +80,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 				template <typename T>
 				struct is_strided_array_view_oracle : std::false_type
 				{};
-				template <typename T, int N>
+				template <typename T, rank_type N>
 				struct is_strided_array_view_oracle<strided_array_view<T, N>> : std::true_type
 				{};
 
@@ -83,16 +88,16 @@ namespace ARRAY_VIEW_NAMESPACE {
 				struct is_strided_array_view : is_strided_array_view_oracle<std::decay_t<T>>
 				{};
 
-				template <template <typename, int> class ViewType, typename ValueType, int Rank>
+				template <template <typename, rank_type> class ViewType, typename ValueType, rank_type Rank>
 				struct slice_return_type { using type = ViewType<ValueType, Rank - 1>; };
 
-				template <template <typename, int> class ViewType, typename ValueType>
+				template <template <typename, rank_type> class ViewType, typename ValueType>
 				struct slice_return_type<ViewType, ValueType, 1> { using type = void; };
 
-				template <template <typename, int> class ViewType, typename ValueType, int Rank>
+				template <template <typename, rank_type> class ViewType, typename ValueType, rank_type Rank>
 				using slice_return_type_t = typename slice_return_type<ViewType, ValueType, Rank>::type;
 
-				template <typename ValueType, int Rank>
+				template <typename ValueType, rank_type Rank>
 				class any_array_view_base
 				{
 				public:
@@ -104,7 +109,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 					using pointer	 = ValueType*;
 					using reference   = ValueType&;
 
-					_CONSTEXPR bounds_type bounds() const _NOEXCEPT
+					_CONSTEXPR bounds_type extents() const _NOEXCEPT
 					{
 						return bnd;
 					}
@@ -119,7 +124,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 						return srd;
 					}
 
-					// Preconditions: (*this).bounds().contains(idx)
+					// Preconditions: (*this).extents().contains(idx)
 					_CONSTEXPR reference operator[](const index_type& idx) const
 					{
 						assert(bnd.contains(idx));
@@ -132,7 +137,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 					}
 
 					// Preconditions: for any index idx, if section_bounds.contains(idx),
-					// bounds().contains(origin + idx) must be true
+					// extents().contains(origin + idx) must be true
 					_CONSTEXPR strided_array_view<value_type, rank> section(const index_type& origin, const bounds_type& section_bnd) const
 					{
 						assert(bnd.contains(origin));
@@ -141,7 +146,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 					}
 
 					// Preconditions: for any index idx, if section_bounds.contains(idx),
-					// bounds().contains(origin + idx) must be true
+					// extents().contains(origin + idx) must be true
 					_CONSTEXPR strided_array_view<value_type, rank> section(const index_type& origin) const
 					{
 						assert(bnd.contains(origin));
@@ -149,7 +154,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 						return section(origin, section_bnd);
 					}
 
-					_CONSTEXPR bool empty() const { return bounds().empty(); }
+					_CONSTEXPR bool empty() const { return extents().empty(); }
 
 				protected:
 					_CONSTEXPR any_array_view_base(bounds_type bnd, index_type stride, pointer data) _NOEXCEPT
@@ -181,7 +186,7 @@ namespace ARRAY_VIEW_NAMESPACE {
 
 			} // namespace details
 
-			template <typename ValueType, int Rank = 1>
+			template <typename ValueType, rank_type Rank = 1>
 			class strided_array_view : public details::any_array_view_base<ValueType, Rank>
 			{
 				using Base = details::any_array_view_base<ValueType, Rank>;
@@ -223,9 +228,9 @@ namespace ARRAY_VIEW_NAMESPACE {
 
                 // fundamental explicit ctor
 				// Preconditions:
-				//   - for any index idx, if bounds().contains(idx),
+				//   - for any index idx, if extents().contains(idx),
 				//     for i = [0,rank), idx[i] * stride[i] must be representable as ptrdiff_t
-				//   - for any index idx, if bounds().contains(idx),
+				//   - for any index idx, if extents().contains(idx),
 				//     (*this)[idx] must refer to a valid memory location
 				_CONSTEXPR strided_array_view(bounds_type bounds, index_type stride, pointer data) _NOEXCEPT
 					: Base{ std::move(bounds), std::move(stride), data }
@@ -259,8 +264,8 @@ namespace ARRAY_VIEW_NAMESPACE {
 				using Base::operator[];
 
 				// Returns a slice of the view.
-				// Preconditions: slice < (*this).bounds()[0]
-				template <int _dummy_rank = rank>
+				// Preconditions: slice < (*this).extents()[0]
+				template <rank_type _dummy_rank = rank>
 				_CONSTEXPR details::slice_return_type_t<ARRAY_VIEW_NAMESPACE::strided_array_view, value_type, Rank>
 					operator[](typename std::enable_if<_dummy_rank != 1, typename index_type::value_type>::type slice) const _NOEXCEPT
 				{
@@ -287,7 +292,7 @@ namespace ARRAY_VIEW_NAMESPACE {
                 }
 			};
 
-            template<typename T, typename U, int Rank,
+            template<typename T, typename U, rank_type Rank,
                 typename = std::enable_if_t<
                     std::is_same<
                         std::remove_cv_t<T>,
@@ -295,7 +300,7 @@ namespace ARRAY_VIEW_NAMESPACE {
                     >>
             bool is_same_view(const strided_array_view<T, Rank>& x, const strided_array_view<U, Rank>& y) {
                 return x.data() == y.data() &&
-                    x.bounds() == y.bounds() &&
+                    x.extents() == y.extents() &&
                     x.stride() == y.stride();
             }
 }
