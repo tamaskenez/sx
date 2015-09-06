@@ -404,6 +404,29 @@ bool is_same_view(const strided_array_view<T, Rank>& x,
 {
     return x.data() == y.data() && x.extents() == y.extents() && x.strides() == y.strides();
 }
+
+struct end {};
+template<
+smart_index operator-(end, )
+struct length {};
+struct smart_index {
+    index_type idx;
+    enum kind_t { SI_ABSOLUTE, SI_FROM_END, SI_LENGTH } kind;
+};
+template<typename T, rank_type Rank>
+array_view<T> subvector(array_view<T, Rank> v,
+    array_view<T, Rank>::indices_type idx,
+    rank_type dim,
+    size_type size = end,
+    index_type stride = 1
+    ){
+    return ;
+}
+
+make_array_view(
+    &X[idx], X.extents(dim), X.strides(dim)
+    );
+
 }
 
 #endif // _IMPL_ARRAY_VIEW_H_
