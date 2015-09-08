@@ -24,9 +24,9 @@ bool next_variation(
 
 template <typename R, rank_type Rank,
     typename = std::enable_if_t<!std::is_const<R>::value> >
-void sortperm_inplace(strided_array_view<R, Rank> X, rank_type dim = 0)
+void sortperm_inplace(array_view<R, Rank> X, rank_type dim = 0)
 {
-    using ResultArray = strided_array_view<R, Rank>;
+    using ResultArray = array_view<R, Rank>;
 
     // iterate over X, leaving out the 'dim' dimension
     std::array<typename ResultArray::size_type, Rank> lower_bounds, it, e;
@@ -47,7 +47,7 @@ void sortperm_inplace(strided_array_view<R, Rank> X, rank_type dim = 0)
 
 template <typename T, rank_type Rank>
 multi_array<typename std::remove_const<T>::type, Rank>
-sort(strided_array_view<T, Rank> X, rank_type dim = 0)
+sort(array_view<T, Rank> X, rank_type dim = 0)
 {
     using V = typename std::remove_const<T>::type;
     using ResultArray = multi_array<V, Rank>;
@@ -60,7 +60,7 @@ sort(strided_array_view<T, Rank> X, rank_type dim = 0)
 // like Julia's sortperm
 // sorts along 'dim' dimension
 template <typename T, typename U, rank_type Rank>
-multi_array<T, Rank> sortperm(strided_array_view<U, Rank> X, int dim = 0)
+multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
 {
     using ResultArray = multi_array<T, Rank>;
     ResultArray R(X.extents(), X.strides());
@@ -78,13 +78,14 @@ multi_array<T, Rank> sortperm(strided_array_view<U, Rank> X, int dim = 0)
         auto rbegin = &R[it];
         auto rend = rbegin + R.extents(dim) * R.strides(dim);
         std::iota(rbegin, rend, 0);
-        auto xv = X.subvector(it, dim, { 0, end });
-        std::copy(xv.begin(), xv.end(), w.begin());
+        auto xv = subvector(X, it, dim);
+        std::copy(BEGINEND(xv), w.begin());
         std::sort(
             make_random_access_iterator_pair(w.begin(), rbegin),
             make_random_access_iterator_pair(w.end(), rend));
 
-        R.subvector(it, dim, { 0, end }) = w;
+        assert(R.extents(dim) == w.size());
+        std::copy(BEGINEND(w), subvector(R, it, dim).begin());
 
         if (!next_variation(lower_bounds.begin(), it.begin(), e.begin(), Rank))
             break;
