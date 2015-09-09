@@ -6,6 +6,7 @@
 #include <utility>
 #include "coordinate.h"
 #include "static_const.h"
+#include "sx/random_access_iterator_pair.h"
 
 namespace sx {
 
@@ -14,7 +15,7 @@ using index_type = std::size_t;
 using size_type = std::size_t;
 using extent_type = std::size_t;
 
-template <typename ValueType, rank_type Rank>
+template <typename T, rank_type Rank>
 class array_view;
 
 namespace details {
@@ -189,7 +190,7 @@ namespace details {
         return false;
     }
 
-    template <typename ValueType, rank_type Rank>
+    template <typename T, rank_type Rank>
     class any_array_view_base {
     public:
         static const rank_type rank = Rank;
@@ -199,9 +200,9 @@ namespace details {
         using extent_type = ::sx::extent_type;
         using indices_type = indices_template<Rank>;
         using extents_type = extents_template<Rank>;
-        using value_type = ValueType;
-        using pointer = ValueType*;
-        using reference = ValueType&;
+        using value_type = typename std::remove_const<T>::type;
+        using pointer = T*;
+        using reference = T&;
 
         _CONSTEXPR const typename extents_type::base_type& extents() const _NOEXCEPT { return bnd; }
         _CONSTEXPR const typename extents_type::value_type extents(std::size_t i) const _NOEXCEPT { return bnd[i]; }
@@ -282,11 +283,12 @@ namespace details {
 
 } // namespace details
 
-template <typename ValueType, rank_type Rank = 1>
-class array_view : public details::any_array_view_base<ValueType, Rank> {
-    using Base = details::any_array_view_base<ValueType, Rank>;
+template <typename T, rank_type Rank = 1>
+class array_view : public details::any_array_view_base<T, Rank> {
+    using Base = details::any_array_view_base<T, Rank>;
 
 public:
+    using this_type = array_view;
     using Base::rank;
     using index_type = typename Base::index_type;
     using indices_type = typename Base::indices_type;
@@ -396,6 +398,71 @@ public:
     {
         return Base::data_ptr;
     }
+    //todo treat rank==1 as special case (specialize template)
+	struct iterator : public std::iterator<std::bidirectional_iterator_tag,
+    value_type, std::ptrdiff_t, pointer, reference> {
+        const this_type* that;
+        indices_type idx;
+        std::array<int, Rank> dim_permut; //strides[dim_permut[i]] is sorted
+
+        reference operator*() const { return (*that)[idx]; }
+        iterator& operator++() {
+            rank_type i = 0;
+            for (; i < Rank; ++i) {
+                int j = dim_permut[i];
+                if (++(idx[j]) != that->extents(j) || i + 1 == Rank)
+                    break;
+                idx[j] = 0;
+            }
+            return *this;
+        }
+        iterator& operator--() {
+            rank_type i = 0;
+            for (; i < Rank; ++i) {
+                int j = dim_permut[i];
+                if ((idx[j])-- != 0 || i + 1 == Rank)
+                    break;
+                idx[j] = that->extents(j) - 1;
+            }
+            return *this;
+        }
+        iterator operator++(int) {
+            iterator x(*this);
+            operator++();
+            return x;
+        }
+        iterator operator--(int) {
+            iterator x(*this);
+            operator--();
+            return x;
+        }
+        bool operator==(const iterator& x) const {
+            assert(that == x.that);
+            return that == x.that && idx == x.idx;
+        }
+        bool operator!=(const iterator& x) const { return !((*this)==x); }
+        pointer operator->() const { return &(operator*()); }
+	};
+    void prepare_iterator(iterator& it) const {
+        it.that = this;
+        std::iota(it.dim_permut.begin(), it.dim_permut.end(), 0);
+        auto strides = Base::srd;
+        std::sort(
+            make_random_access_iterator_pair(strides.begin(), it.dim_permut.begin()),
+            make_random_access_iterator_pair(strides.end(), it.dim_permut.end()));
+    }
+	iterator begin() const {
+        iterator it;
+        prepare_iterator(it);
+        it.idx.fill(0);
+        return it;
+	}
+	iterator end() const {
+        iterator it;
+        prepare_iterator(it);
+        it.idx = Base::bnd;
+        return it;
+	}
 };
 
 template <typename T, typename U, rank_type Rank,

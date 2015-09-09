@@ -59,8 +59,9 @@ public:
     multi_array& operator=(multi_array&& x); //todo
 
     operator const array_view<T, Rank>&() { return *static_cast<base_type*>(this); }
-    const array_view<T, Rank>& ize() { return *static_cast<base_type*>(this); }
     operator const array_view<const T, Rank>&() const { return *reinterpret_cast<array_view<const T, Rank>*>(static_cast<base_type*>(this)); }
+    const array_view<T, Rank>& view() { return *static_cast<array_view<T, Rank>*>(this); }
+    const array_view<const T, Rank>& view() const { return *reinterpret_cast<array_view<const T, Rank>*>(static_cast<array_view<T,Rank>*>(this)); }
 #if SX_MULTI_ARRAY_PASS_INDICES_BY_VALUE
     //todo op[](size_type ) if rank = 1
     T& operator[](const indices_type& offset);

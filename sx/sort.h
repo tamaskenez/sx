@@ -85,11 +85,12 @@ multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
             make_random_access_iterator_pair(w.end(), rend));
 
         assert(R.extents(dim) == w.size());
-        std::copy(BEGINEND(w), subvector(R, it, dim).begin());
+        std::copy(BEGINEND(w), subvector(R.view(), it, dim).begin());
 
         if (!next_variation(lower_bounds.begin(), it.begin(), e.begin(), Rank))
             break;
     }
+    return R;
 }
 }
 
