@@ -54,6 +54,16 @@ public:
         , d(linear_index(e, s))
     {
     }
+    explicit multi_array(const extents_type& e)
+        : base_type(nullptr, e, ARRAY_LAYOUT_C)
+    , d(linear_index(e, base_type::srd))
+    {
+    }
+    explicit multi_array(const extents_type& e, array_layout_t layout)
+        : base_type(nullptr, e, layout)
+    , d(linear_index(e, base_type::srd))
+    {
+    }
     template <typename U>
     multi_array& operator=(const array_view<U, Rank>& x); //todo
     multi_array& operator=(multi_array&& x); //todo
@@ -70,6 +80,7 @@ public:
     T& operator[](indices_type offset);
     const T& operator[](indices_type offset) const;
 #endif
+    using base_type::empty;
 };
 
 template <typename T>

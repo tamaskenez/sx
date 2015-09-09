@@ -11,7 +11,6 @@ bool next_variation(
     std::size_t N)
 {
     for (std::size_t i = 0; i < N; ++i) {
-        ;
         if (++(*values) != *upper_bounds)
             return true;
         *values = *lower_bounds;

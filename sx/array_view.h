@@ -18,6 +18,11 @@ using extent_type = std::size_t;
 template <typename T, rank_type Rank>
 class array_view;
 
+enum array_layout_t {
+    ARRAY_LAYOUT_C,
+    ARRAY_LAYOUT_FORTRAN
+};
+
 namespace details {
     // Note: This should be replaced with std::index_sequence if available.
     template <size_t... I>
@@ -261,6 +266,21 @@ namespace details {
               srd(std::move(stride))
         {
         }
+        _CONSTEXPR any_array_view_base(pointer data, extents_type bnd, array_layout_t layout) _NOEXCEPT
+            : data_ptr(std::move(data)),
+              bnd(std::move(bnd))
+        {
+            if(layout == ARRAY_LAYOUT_C) {
+                srd[Rank - 1] = 1;
+                for(int i = Rank - 2; i >= 0; --i)
+                    srd[i] = srd[i+1] * bnd[i+1];
+            } else {
+                assert(layout == ARRAY_LAYOUT_FORTRAN);
+                srd[0] = 1;
+                for(int i = 1; i < Rank; ++i)
+                    srd[i] = srd[i-1] * bnd[i-1];
+            }
+        }
 #if 0
         _CONSTEXPR bool check_section_correct(
             const index_type& origin, const bounds_type& section_bnd) const _NOEXCEPT
@@ -335,6 +355,11 @@ public:
     //     (*this)[idx] must refer to a valid memory location
     _CONSTEXPR array_view(pointer data, extents_type bounds, indices_type stride) _NOEXCEPT
         : Base{ data, std::move(bounds), std::move(stride) }
+    {
+    }
+
+    _CONSTEXPR array_view(pointer data, extents_type bounds, array_layout_t layout) _NOEXCEPT
+        : Base{ data, std::move(bounds), layout }
     {
     }
 
