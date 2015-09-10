@@ -21,8 +21,9 @@ constexpr size_type linear_index(details::arraylike<T, Rank> x, details::arrayli
     return s;
 }
 
-template <typename T, std::size_t Rank>
-class multi_array : protected array_view<T, Rank> {
+template <typename T, rank_type Rank>
+class multi_array : public array_view<T, Rank> {
+private:
     std::vector<T> d;
 
 protected:
@@ -37,9 +38,7 @@ public:
     using indices_type = typename base_type::indices_type;
     using extents_type = typename base_type::extents_type;
     using value_type = T;
-    using base_type::rank;
-    using base_type::extents;
-    using base_type::strides;
+    static constexpr rank_type rank = Rank;
     using reference = T&;
     using const_reference = const T&;
 
@@ -56,24 +55,41 @@ public:
         , d(linear_index(e, s))
     {
     }
-    	explicit multi_array(const extents_type& e)
-    : base_type(nullptr, e, array_layout::c_order)
-    , d(linear_index(e, base_type::srd))
+    explicit multi_array(const extents_type& e)
+        : base_type(nullptr, e, array_layout::c_order)
+        , d(linear_index(e, base_type::srd))
     {
     }
     explicit multi_array(const extents_type& e, array_layout_t layout)
         : base_type(nullptr, e, layout)
-    , d(linear_index(e, base_type::srd))
+        , d(linear_index(e, base_type::srd))
     {
     }
     template <typename U>
     multi_array& operator=(const array_view<U, Rank>& x); //todo
     multi_array& operator=(multi_array&& x); //todo
 
-    operator const array_view<T, Rank>&() { return *static_cast<base_type*>(this); }
-    operator const array_view<const T, Rank>&() const { return *reinterpret_cast<array_view<const T, Rank>*>(static_cast<base_type*>(this)); }
-    const array_view<T, Rank>& view() { return *static_cast<array_view<T, Rank>*>(this); }
-    const array_view<const T, Rank>& view() const { return *reinterpret_cast<array_view<const T, Rank>*>(static_cast<array_view<T,Rank>*>(this)); }
+    constexpr operator const array_view<T, Rank>&()
+    {
+        return *static_cast<base_type*>(this);
+    }
+    constexpr operator const array_view<const T, Rank>&() const
+    {
+        return *reinterpret_cast<array_view<const T, Rank>*>(static_cast<base_type*>(this));
+    }
+    base_type* base_ptr() { return this; }
+    const base_type* const_base_ptr() const { return this; }
+    constexpr const array_view<T, Rank>& view()
+    {
+        //casting to identical type, written this way
+        //to mimic the view() const member function
+        return *static_cast<array_view<T, Rank>*>(base_ptr());
+    }
+    constexpr const array_view<const T, Rank>& view() const
+    {
+        return *reinterpret_cast<const array_view<const T, Rank>*>(const_base_ptr());
+    }
+
 #if SX_MULTI_ARRAY_PASS_INDICES_BY_VALUE
     //todo op[](size_type ) if rank = 1
     T& operator[](const indices_type& offset);
@@ -82,15 +98,25 @@ public:
     T& operator[](indices_type offset);
     const T& operator[](indices_type offset) const;
 #endif
-    template<typename...Indices>
-    reference operator()(Indices...indices);
-    template<typename...Indices>
-    const_reference operator()(Indices...indices) const;
+
+    template <typename... Ts>
+    auto
+    operator()(Ts... v) const -> decltype(this->view()(v...))
+    {
+        return view()(v...);
+    }
+    template <typename... Ts>
+    auto
+    operator()(Ts... v) -> decltype(this->view()(v...))
+    {
+        return view()(v...);
+    }
+
     using base_type::empty;
 };
 
 template <typename T>
-using matrix = multi_array<T, 2>;
+using matrix = multi_array<T, (rank_type)2>;
 }
 
 #endif

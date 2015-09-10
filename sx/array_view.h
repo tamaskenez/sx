@@ -18,16 +18,19 @@ using extent_type = std::size_t;
 template <typename T, rank_type Rank>
 class array_view;
 
-    struct array_layout_t {
-        constexpr explicit array_layout_t(int value) : value(value) {}
-        constexpr bool operator==(const array_layout_t& x) const { return value == x.value; }
-        constexpr bool operator!=(const array_layout_t& x) const { return value != x.value; }
-        const int value;
-    };
+struct array_layout_t {
+    constexpr explicit array_layout_t(int value)
+        : value(value)
+    {
+    }
+    constexpr bool operator==(const array_layout_t& x) const { return value == x.value; }
+    constexpr bool operator!=(const array_layout_t& x) const { return value != x.value; }
+    const int value;
+};
 
 namespace array_layout {
-    static constexpr array_layout_t c_order{0};
-    static constexpr array_layout_t fortran_order{0};
+    static constexpr array_layout_t c_order{ 0 };
+    static constexpr array_layout_t fortran_order{ 0 };
 };
 
 namespace details {
@@ -139,33 +142,35 @@ namespace details {
     using slice_return_type_t =
         typename slice_return_type<ViewType, ValueType, Rank>::type;
 
-template<typename T, typename H>
-constexpr void copy_head_and_advance(T* b, H h) {
-    *b = h;
-}
-template<typename T, typename H, typename...Tail>
-constexpr void copy_head_and_advance(T* b, H h, Tail...tail) {
-    *b = h;
-    copy_head_and_advance(b+1, tail...);
-}
+    template <typename T, typename H>
+    constexpr void copy_head_and_advance(T* b, H h)
+    {
+        *b = h;
+    }
+    template <typename T, typename H, typename... Tail>
+    constexpr void copy_head_and_advance(T* b, H h, Tail... tail)
+    {
+        *b = h;
+        copy_head_and_advance(b + 1, tail...);
+    }
 
-template<int N, typename T, typename...Ts>
-struct all_integrals_helper {
-    static constexpr bool value = std::is_integral<T>::value
-    && all_integrals_helper<N-1, Ts...>::value;
-};
+    template <int N, typename T, typename... Ts>
+    struct all_integrals_helper {
+        static constexpr bool value = std::is_integral<T>::value
+            && all_integrals_helper<N - 1, Ts...>::value;
+    };
 
-template<typename T, typename...Ts>
-struct all_integrals_helper<1, T, Ts...> {
-    static constexpr bool value = std::is_integral<T>::value;
-};
+    template <typename T, typename... Ts>
+    struct all_integrals_helper<1, T, Ts...> {
+        static constexpr bool value = std::is_integral<T>::value;
+    };
 
-template<typename...Ts>
-struct all_integrals {
-    static constexpr bool value = all_integrals_helper<sizeof...(Ts) + 1, int, Ts...>::value;
-};
+    template <typename... Ts>
+    struct all_integrals {
+        static constexpr bool value = all_integrals_helper<sizeof...(Ts) + 1, int, Ts...>::value;
+    };
 
-// like std::array but allows more constructors
+    // like std::array but allows more constructors
     template <typename T, rank_type Rank>
     struct arraylike
         : public std::array<T, Rank> {
@@ -191,13 +196,9 @@ struct all_integrals {
             static_assert(Rank == 1, "Single-value constructor can be used only if Rank == 1");
         }
 
-            template <typename...Ints, typename =
-                std::enable_if_t<
-                    sizeof...(Ints) == Rank
-                    && all_integrals<Ints...>::value
-                >
-            >
-        constexpr arraylike(Ints...ints)
+        template <typename... Ints, typename = std::enable_if_t<sizeof...(Ints) == Rank
+                                        && all_integrals<Ints...>::value> >
+        constexpr arraylike(Ints... ints)
         {
             copy_head_and_advance(base_type::data(), ints...);
         }
@@ -210,7 +211,6 @@ struct all_integrals {
     using extents_template = arraylike<extent_type, Rank>;
     template <rank_type Rank>
     using indices_template = arraylike<index_type, Rank>;
-
 
     template <typename T, typename U, rank_type Rank>
     _CONSTEXPR bool is_within_extents(const std::array<T, Rank>& idx,
@@ -246,11 +246,11 @@ namespace {
 
 //`fromend_value` is the type of the expression `end - <integral>`
 //it encapsulates the integral value
-template <typename I, typename = std::enable_if_t<std::is_integral<I>::value>>
+template <typename I, typename = std::enable_if_t<std::is_integral<I>::value> >
 struct fromend_value {
     const I value;
     constexpr fromend_value(I i)
-    : value(i)
+        : value(i)
     {
     }
 };
@@ -261,14 +261,14 @@ template <typename I>
 struct length_value {
     const I value;
     constexpr length_value(I i)
-    : value(i)
+        : value(i)
     {
     }
 };
 
 //creates the expression `end - <integral>`
 template <typename I,
-typename = std::enable_if<std::is_integral<I>::value> >
+    typename = std::enable_if<std::is_integral<I>::value> >
 constexpr fromend_value<I> operator-(end_fn, I i)
 {
     return fromend_value<I>(i);
@@ -278,7 +278,7 @@ constexpr fromend_value<I> operator-(end_fn, I i)
 //expression `length = <integral>`
 struct length_fn {
     template <typename I,
-    typename = std::enable_if<std::is_integral<I>::value> >
+        typename = std::enable_if<std::is_integral<I>::value> >
     constexpr length_value<I> operator=(I i) const
     {
         return length_value<I>(i);
@@ -288,6 +288,16 @@ struct length_fn {
 namespace {
     //static global `length` object
     constexpr auto&& length = static_const<length_fn>::value;
+}
+
+//type of static global `all` object for the
+//expression `all` (= the entire slice)
+struct all_fn {
+};
+
+namespace {
+    //static global `all` object
+    constexpr auto&& all = static_const<all_fn>::value;
 }
 
 //base type for the union type of the expressions
@@ -306,8 +316,8 @@ struct smart_index_base {
 
     template <typename I>
     constexpr smart_index_base(I value, kind_t k)
-    : value(value)
-    , kind(k)
+        : value(value)
+        , kind(k)
     {
     }
 
@@ -350,25 +360,26 @@ public:
     //absolute index
     template <typename I>
     constexpr index_or_fromend(I idx)
-    : smart_index_base(idx, K_ABSOLUTE)
+        : smart_index_base(idx, K_ABSOLUTE)
     {
     }
 
     //`end - <integral>`
     template <typename I>
     constexpr index_or_fromend(fromend_value<I> e)
-    : smart_index_base(e.value, K_FROM_END)
+        : smart_index_base(e.value, K_FROM_END)
     {
     }
 
     //`end`
     constexpr index_or_fromend(end_fn)
-    : smart_index_base(0, K_FROM_END)
+        : smart_index_base(0, K_FROM_END)
     {
     }
 
     //resolves absolute index
-    constexpr index_type index(extent_type extent) const {
+    constexpr index_type index(extent_type extent) const
+    {
         return smart_index_base::index_when_not_length(extent);
     }
 };
@@ -390,29 +401,37 @@ struct index_or_fromend_or_length : protected index_or_fromend {
     //`length = <integral>`
     template <typename I>
     constexpr index_or_fromend_or_length(length_value<I> l)
-    : smart_index_base(l.value, K_LENGTH)
+        : smart_index_base(l.value, K_LENGTH)
     {
     }
 };
 
 //encapsulates a slice between a `index_or_fromend` to
 //`index_or_fromend_or_length` values
-struct slice_bounds
-{
+struct slice_bounds {
     const index_or_fromend from;
     const index_or_fromend_or_length to_or_length;
 
-    template<typename F, typename T>
+    template <typename F, typename T>
     constexpr slice_bounds(F from, T to_or_length)
-    : from(from), to_or_length(to_or_length)
-    {}
+        : from(from)
+        , to_or_length(to_or_length)
+    {
+    }
+
+    constexpr slice_bounds(all_fn)
+        : from(0)
+        , to_or_length(sx::end)
+    {
+    }
 
     //resolves the length of the slice given the extent
     //of the entire dimension (`end` resolves to `extent`)
-    constexpr extent_type length(extent_type extent) const {
+    constexpr extent_type length(extent_type extent) const
+    {
         return to_or_length.kind == ::sx::smart_index_base::K_LENGTH
-        ? to_or_length.value
-        : to_or_length.index_when_not_length(extent) - from.index(extent);
+            ? to_or_length.value
+            : to_or_length.index_when_not_length(extent) - from.index(extent);
     }
 };
 
@@ -456,29 +475,35 @@ namespace details {
             return *ptr;
         }
 
-        constexpr reference operator()(index_type x) const {
+        constexpr reference operator()(index_type x) const
+        {
             static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
             return data_ptr[x * srd[0]];
         }
-        constexpr array_view<T, 1> operator()(slice_bounds x) const {
+        constexpr array_view<T, 1> operator()(slice_bounds x) const
+        {
             static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
             return array_view<T, 1>(data_ptr, x.length(bnd[0]), srd);
         }
-        constexpr reference operator()(index_type x, index_type y) const {
+        constexpr reference operator()(index_type x, index_type y) const
+        {
             static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
             return data_ptr[x * srd[0] + y * srd[1]];
         }
-        constexpr array_view<T, 1> operator()(slice_bounds x, index_type y) const {
+        constexpr array_view<T, 1> operator()(slice_bounds x, index_type y) const
+        {
             static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
             return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y * srd[1], x.length(bnd[0]), srd[0]);
         }
-        constexpr array_view<T, 1> operator()(index_type x, slice_bounds y) const {
+        constexpr array_view<T, 1> operator()(index_type x, slice_bounds y) const
+        {
             static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
             return array_view<T, 1>(data_ptr + x * srd[0] + y.from.index(bnd[1]) * srd[1], y.length(bnd[1]), srd[1]);
         }
-        constexpr array_view<T, 2> operator()(slice_bounds x, slice_bounds y) const {
+        constexpr array_view<T, 2> operator()(slice_bounds x, slice_bounds y) const
+        {
             static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
-            return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y.from.index(bnd[1]) * srd[1], {x.length(bnd[0]), y.length(bnd[1])}, srd);
+            return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y.from.index(bnd[1]) * srd[1], { x.length(bnd[0]), y.length(bnd[1]) }, srd);
         }
 
 #if 0
@@ -518,15 +543,15 @@ namespace details {
             : data_ptr(std::move(data)),
               bnd(std::move(bnd))
         {
-            if(layout == array_layout::c_order) {
+            if (layout == array_layout::c_order) {
                 srd[Rank - 1] = 1;
-                for(int i = Rank - 2; i >= 0; --i)
-                    srd[i] = srd[i+1] * bnd[i+1];
+                for (int i = Rank - 2; i >= 0; --i)
+                    srd[i] = srd[i + 1] * bnd[i + 1];
             } else {
                 assert(layout == array_layout::fortran_order);
                 srd[0] = 1;
-                for(int i = 1; i < Rank; ++i)
-                    srd[i] = srd[i-1] * bnd[i-1];
+                for (int i = 1; i < Rank; ++i)
+                    srd[i] = srd[i - 1] * bnd[i - 1];
             }
         }
 #if 0
@@ -548,7 +573,6 @@ namespace details {
         // thus saving couple of bytes. It should be measured whether it's
         // beneficial.
     };
-
 
 } // namespace details
 
@@ -640,8 +664,8 @@ public:
     {
     }
 
-using Base::operator[];
-using Base::operator();
+    using Base::operator[];
+    using Base::operator();
 
 #if 0
     // Returns a slice of the view.
@@ -674,14 +698,15 @@ using Base::operator();
         return Base::data_ptr;
     }
     //todo treat rank==1 as special case (specialize template)
-	struct iterator : public std::iterator<std::bidirectional_iterator_tag,
-    value_type, std::ptrdiff_t, pointer, reference> {
+    struct iterator : public std::iterator<std::bidirectional_iterator_tag,
+                          value_type, std::ptrdiff_t, pointer, reference> {
         const this_type* that;
         indices_type idx;
         std::array<int, Rank> dim_permut; //strides[dim_permut[i]] is sorted
 
         reference operator*() const { return (*that)[idx]; }
-        iterator& operator++() {
+        iterator& operator++()
+        {
             rank_type i = 0;
             for (; i < Rank; ++i) {
                 int j = dim_permut[i];
@@ -691,7 +716,8 @@ using Base::operator();
             }
             return *this;
         }
-        iterator& operator--() {
+        iterator& operator--()
+        {
             rank_type i = 0;
             for (; i < Rank; ++i) {
                 int j = dim_permut[i];
@@ -701,24 +727,28 @@ using Base::operator();
             }
             return *this;
         }
-        iterator operator++(int) {
+        iterator operator++(int)
+        {
             iterator x(*this);
             operator++();
             return x;
         }
-        iterator operator--(int) {
+        iterator operator--(int)
+        {
             iterator x(*this);
             operator--();
             return x;
         }
-        bool operator==(const iterator& x) const {
+        bool operator==(const iterator& x) const
+        {
             assert(that == x.that);
             return that == x.that && idx == x.idx;
         }
-        bool operator!=(const iterator& x) const { return !((*this)==x); }
+        bool operator!=(const iterator& x) const { return !((*this) == x); }
         pointer operator->() const { return &(operator*()); }
-	};
-    void prepare_iterator(iterator& it) const {
+    };
+    void prepare_iterator(iterator& it) const
+    {
         it.that = this;
         std::iota(it.dim_permut.begin(), it.dim_permut.end(), 0);
         auto strides = Base::srd;
@@ -726,18 +756,20 @@ using Base::operator();
             make_random_access_iterator_pair(strides.begin(), it.dim_permut.begin()),
             make_random_access_iterator_pair(strides.end(), it.dim_permut.end()));
     }
-	iterator begin() const {
+    iterator begin() const
+    {
         iterator it;
         prepare_iterator(it);
         it.idx.fill(0);
         return it;
-	}
-	iterator end() const {
+    }
+    iterator end() const
+    {
         iterator it;
         prepare_iterator(it);
         it.idx = Base::bnd;
         return it;
-	}
+    }
 };
 
 template <typename T, typename U, rank_type Rank,
