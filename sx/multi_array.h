@@ -40,6 +40,8 @@ public:
     using base_type::rank;
     using base_type::extents;
     using base_type::strides;
+    using reference = T&;
+    using const_reference = const T&;
 
     multi_array() = default;
     multi_array(const multi_array& x) = default;
@@ -54,8 +56,8 @@ public:
         , d(linear_index(e, s))
     {
     }
-    explicit multi_array(const extents_type& e)
-        : base_type(nullptr, e, ARRAY_LAYOUT_C)
+    	explicit multi_array(const extents_type& e)
+    : base_type(nullptr, e, array_layout::c_order)
     , d(linear_index(e, base_type::srd))
     {
     }
@@ -80,6 +82,10 @@ public:
     T& operator[](indices_type offset);
     const T& operator[](indices_type offset) const;
 #endif
+    template<typename...Indices>
+    reference operator()(Indices...indices);
+    template<typename...Indices>
+    const_reference operator()(Indices...indices) const;
     using base_type::empty;
 };
 
