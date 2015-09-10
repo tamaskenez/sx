@@ -77,14 +77,15 @@ multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
         auto rbegin = &R[it];
         auto rend = rbegin + R.extents(dim) * R.strides(dim);
         std::iota(rbegin, rend, 0);
-        auto xv = subvector(X, it, dim);
+        auto xv = make_array_view<1>(&X[it], X.extents(dim), X.strides(dim));
         std::copy(BEGINEND(xv), w.begin());
         std::sort(
             make_random_access_iterator_pair(w.begin(), rbegin),
             make_random_access_iterator_pair(w.end(), rend));
 
         assert(R.extents(dim) == w.size());
-        std::copy(BEGINEND(w), subvector(R.view(), it, dim).begin());
+        std::copy(BEGINEND(w),
+            make_array_view<1>(&R[it], R.extents(dim), R.strides(dim)).begin());
 
         if (!next_variation(lower_bounds.begin(), it.begin(), e.begin(), Rank))
             break;

@@ -4,8 +4,9 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
-#include "coordinate.h"
-#include "static_const.h"
+
+#include "sx/coordinate.h"
+#include "sx/static_const.h"
 #include "sx/random_access_iterator_pair.h"
 
 namespace sx {
@@ -19,12 +20,12 @@ template <typename T, rank_type Rank>
 class array_view;
 
 struct array_layout_t {
-    constexpr explicit array_layout_t(int value)
+    constexpr explicit array_layout_t(int value) noexcept
         : value(value)
     {
     }
-    constexpr bool operator==(const array_layout_t& x) const { return value == x.value; }
-    constexpr bool operator!=(const array_layout_t& x) const { return value != x.value; }
+    constexpr bool operator==(const array_layout_t& x) const noexcept { return value == x.value; }
+    constexpr bool operator!=(const array_layout_t& x) const noexcept { return value != x.value; }
     const int value;
 };
 
@@ -143,12 +144,12 @@ namespace details {
         typename slice_return_type<ViewType, ValueType, Rank>::type;
 
     template <typename T, typename H>
-    constexpr void copy_head_and_advance(T* b, H h)
+    constexpr void copy_head_and_advance(T* b, H h) noexcept
     {
         *b = h;
     }
     template <typename T, typename H, typename... Tail>
-    constexpr void copy_head_and_advance(T* b, H h, Tail... tail)
+    constexpr void copy_head_and_advance(T* b, H h, Tail... tail) noexcept
     {
         *b = h;
         copy_head_and_advance(b + 1, tail...);
@@ -170,41 +171,46 @@ namespace details {
         static constexpr bool value = all_integrals_helper<sizeof...(Ts) + 1, int, Ts...>::value;
     };
 
-    // like std::array but allows more constructors
+    // like std::array but allows more constructors,
+    // default ctor initializes to zero
     template <typename T, rank_type Rank>
     struct arraylike
         : public std::array<T, Rank> {
         using base_type = std::array<T, Rank>;
         using typename base_type::value_type;
 
-        arraylike() = default;
-        arraylike(const arraylike&) = default;
+        constexpr arraylike() noexcept
+        {
+            this->fill(0);
+        }
+        constexpr arraylike(const arraylike&) noexcept = default;
         template <typename U>
-        arraylike(const std::array<U, Rank>& x)
+        constexpr arraylike(const std::array<U, Rank>& x) noexcept
             : base_type(x)
         {
         }
-        arraylike& operator=(const arraylike&) = default;
-        arraylike& operator=(const base_type& x)
+        constexpr arraylike& operator=(const arraylike&) noexcept = default;
+        constexpr arraylike& operator=(const base_type& x) noexcept
         {
             base_type::operator=(x);
             return *this;
         }
 
-        _CONSTEXPR arraylike(value_type il)
+        constexpr arraylike(value_type v) noexcept
         {
             static_assert(Rank == 1, "Single-value constructor can be used only if Rank == 1");
+            (*this)[0] = v;
         }
 
         template <typename... Ints, typename = std::enable_if_t<sizeof...(Ints) == Rank
                                         && all_integrals<Ints...>::value> >
-        constexpr arraylike(Ints... ints)
+        constexpr arraylike(Ints... ints) noexcept
         {
             copy_head_and_advance(base_type::data(), ints...);
         }
 
-        base_type& base() { return *this; }
-        const base_type& base() const { return *this; }
+        constexpr base_type& base() noexcept { return *this; }
+        constexpr const base_type& base() const noexcept { return *this; }
     };
 
     template <rank_type Rank>
@@ -213,24 +219,14 @@ namespace details {
     using indices_template = arraylike<index_type, Rank>;
 
     template <typename T, typename U, rank_type Rank>
-    _CONSTEXPR bool is_within_extents(const std::array<T, Rank>& idx,
-        const std::array<U, Rank>& extents) _NOEXCEPT
+    constexpr bool is_within_extents(const std::array<T, Rank>& idx,
+        const std::array<U, Rank>& extents) noexcept
     {
         for (rank_type i = 0; i < Rank; ++i) {
             if (idx[i] < 0 || idx[i] >= extents[i])
                 return false;
         }
         return true;
-    }
-
-    template <typename U, rank_type Rank>
-    _CONSTEXPR bool has_zero_extent(const std::array<U, Rank>& extents) _NOEXCEPT
-    {
-        for (rank_type i = 0; i < Rank; ++i) {
-            if (extents[i] == 0)
-                return true;
-        }
-        return false;
     }
 }
 
@@ -435,276 +431,273 @@ struct slice_bounds {
     }
 };
 
-namespace details {
-    template <typename T, rank_type Rank>
-    class any_array_view_base {
-    public:
-        static const rank_type rank = Rank;
-        using rank_type = ::sx::rank_type;
-        using index_type = ::sx::index_type;
-        using size_type = ::sx::size_type;
-        using extent_type = ::sx::extent_type;
-        using indices_type = indices_template<Rank>;
-        using extents_type = extents_template<Rank>;
-        using value_type = typename std::remove_const<T>::type;
-        using pointer = T*;
-        using reference = T&;
-
-        _CONSTEXPR const typename extents_type::base_type& extents() const _NOEXCEPT { return bnd; }
-        _CONSTEXPR const typename extents_type::value_type extents(std::size_t i) const _NOEXCEPT { return bnd[i]; }
-
-        _CONSTEXPR size_type size() const _NOEXCEPT
-        {
-            size_type ret = bnd[0];
-            for (rank_type i = 1; i < rank; ++i)
-                ret *= bnd[i];
-            return ret;
-        }
-
-        _CONSTEXPR const typename indices_type::base_type& strides() const _NOEXCEPT { return srd; }
-        _CONSTEXPR const typename indices_type::value_type strides(std::size_t i) const _NOEXCEPT { return srd[i]; }
-
-        // Preconditions: (*this).extents().contains(idx)
-        _CONSTEXPR reference operator[](const indices_type& idx) const
-        {
-            assert(is_within_extents(idx, bnd));
-            auto ptr = data_ptr;
-            for (int i = 0; i < rank; i++) {
-                ptr += idx[i] * srd[i];
-            }
-            return *ptr;
-        }
-
-        constexpr reference operator()(index_type x) const
-        {
-            static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
-            return data_ptr[x * srd[0]];
-        }
-        constexpr array_view<T, 1> operator()(slice_bounds x) const
-        {
-            static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
-            return array_view<T, 1>(data_ptr, x.length(bnd[0]), srd);
-        }
-        constexpr reference operator()(index_type x, index_type y) const
-        {
-            static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
-            return data_ptr[x * srd[0] + y * srd[1]];
-        }
-        constexpr array_view<T, 1> operator()(slice_bounds x, index_type y) const
-        {
-            static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
-            return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y * srd[1], x.length(bnd[0]), srd[0]);
-        }
-        constexpr array_view<T, 1> operator()(index_type x, slice_bounds y) const
-        {
-            static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
-            return array_view<T, 1>(data_ptr + x * srd[0] + y.from.index(bnd[1]) * srd[1], y.length(bnd[1]), srd[1]);
-        }
-        constexpr array_view<T, 2> operator()(slice_bounds x, slice_bounds y) const
-        {
-            static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
-            return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y.from.index(bnd[1]) * srd[1], { x.length(bnd[0]), y.length(bnd[1]) }, srd);
-        }
-
-#if 0
-        // Preconditions: for any index idx, if section_bounds.contains(idx),
-        // extents().contains(origin + idx) must be true
-        _CONSTEXPR array_view<value_type, rank> section(
-            const index_type& origin, const bounds_type& section_bnd) const
-        {
-            assert(bnd.contains(origin));
-            assert(check_section_correct(origin, section_bnd));
-            return { section_bnd, srd, &operator[](origin) };
-        }
-
-        // Preconditions: for any index idx, if section_bounds.contains(idx),
-        // extents().contains(origin + idx) must be true
-        _CONSTEXPR array_view<value_type, rank> section(
-            const index_type& origin) const
-        {
-            assert(bnd.contains(origin));
-            bounds_type section_bnd = bnd - origin;
-            return section(origin, section_bnd);
-        }
-#endif
-        _CONSTEXPR bool empty() const _NOEXCEPT
-        {
-            return has_zero_extent(bnd);
-        }
-
-    protected:
-        _CONSTEXPR any_array_view_base(pointer data, extents_type bnd, indices_type stride) _NOEXCEPT
-            : data_ptr(std::move(data)),
-              bnd(std::move(bnd)),
-              srd(std::move(stride))
-        {
-        }
-        _CONSTEXPR any_array_view_base(pointer data, extents_type bnd, array_layout_t layout) _NOEXCEPT
-            : data_ptr(std::move(data)),
-              bnd(std::move(bnd))
-        {
-            if (layout == array_layout::c_order) {
-                srd[Rank - 1] = 1;
-                for (int i = Rank - 2; i >= 0; --i)
-                    srd[i] = srd[i + 1] * bnd[i + 1];
-            } else {
-                assert(layout == array_layout::fortran_order);
-                srd[0] = 1;
-                for (int i = 1; i < Rank; ++i)
-                    srd[i] = srd[i - 1] * bnd[i - 1];
-            }
-        }
-#if 0
-        _CONSTEXPR bool check_section_correct(
-            const index_type& origin, const bounds_type& section_bnd) const _NOEXCEPT
-        {
-            for (int i = 0; i < rank; ++i) {
-                if (origin[i] > bnd[i] - section_bnd[i]) {
-                    return false;
-                }
-            }
-            return true;
-        }
-#endif
-        pointer data_ptr;
-        extents_type bnd;
-        indices_type srd;
-        // Note: for non-strided array view, stride can be computed on-the-fly
-        // thus saving couple of bytes. It should be measured whether it's
-        // beneficial.
-    };
-
-} // namespace details
-
 template <typename T, rank_type Rank = 1>
-class array_view : public details::any_array_view_base<T, Rank> {
-    using Base = details::any_array_view_base<T, Rank>;
+class array_view {
+    static_assert(Rank > 0, "rank must be > 0");
 
 public:
-    using this_type = array_view;
-    using Base::rank;
-    using index_type = typename Base::index_type;
-    using indices_type = typename Base::indices_type;
-    using extents_type = typename Base::extents_type;
-    using size_type = typename Base::size_type;
-    using value_type = typename Base::value_type;
-    using pointer = typename Base::pointer;
-    using reference = typename Base::reference;
+    // types, constants
+    using rank_type = ::sx::rank_type;
+    using index_type = ::sx::index_type;
+    using size_type = ::sx::size_type;
+    using extent_type = ::sx::extent_type;
+    using indices_type = details::indices_template<Rank>;
+    using extents_type = details::extents_template<Rank>;
+    using value_type = typename std::remove_const<T>::type;
+    using pointer = T*;
+    using reference = T&;
 
-    _CONSTEXPR array_view() _NOEXCEPT : Base{ nullptr, {}, {} } {}
+    static constexpr rank_type rank = Rank;
 
-    // copy ctor
-    template <typename ViewValueType,
-        typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<ViewValueType>,
+protected:
+    // state
+    pointer data_ptr;
+    extents_type bnd;
+    indices_type srd;
+
+public:
+    // construction
+    constexpr array_view() noexcept
+        : data_ptr(nullptr) //bnd, src initializes to zero
+    {
+    }
+
+    // fundamental ctor
+    constexpr array_view(pointer data, extents_type extents, indices_type stride) noexcept
+        : data_ptr(data),
+          bnd(extents),
+          srd(stride)
+    {
+    }
+    constexpr array_view(pointer data, extents_type extents, array_layout_t layout) noexcept
+        : data_ptr(data),
+          bnd(extents)
+    {
+        if (layout == array_layout::c_order) {
+            srd[Rank - 1] = 1;
+            for (int i = (int)Rank - 2; i >= 0; --i)
+                srd[i] = srd[i + 1] * bnd[i + 1];
+        } else {
+            assert(layout == array_layout::fortran_order);
+            srd[0] = 1;
+            for (rank_type i = 1; i < Rank; ++i)
+                srd[i] = srd[i - 1] * bnd[i - 1];
+        }
+    }
+
+    // relaxed copy ctor
+    template <typename U,
+        typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<U>,
                                         pointer>::value
-            && std::is_same<std::remove_cv_t<ViewValueType>,
+            && std::is_same<std::remove_cv_t<U>,
                                         std::remove_cv_t<value_type> >::value> >
-    _CONSTEXPR array_view(
-        const array_view<ViewValueType, rank>& rhs) _NOEXCEPT
-        : Base{ rhs.data_ptr, rhs.bnd, rhs.srd }
+    constexpr array_view(
+        const array_view<U, Rank>& rhs) noexcept
+        : array_view(rhs.data_ptr, rhs.bnd, rhs.srd)
     {
     }
 
-    template <typename ViewValueType,
-        typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<ViewValueType>,
-                                        pointer>::value
-            && std::is_same<std::remove_cv_t<ViewValueType>,
-                                        std::remove_cv_t<value_type> >::value> >
-    _CONSTEXPR array_view& assign_view(
-        const array_view<ViewValueType, rank>& rhs) _NOEXCEPT
-    {
-        Base::bnd = rhs.bnd;
-        Base::srd = rhs.srd;
-        Base::data_ptr = rhs.data_ptr;
-        return *this;
-    }
-
-    // fundamental explicit ctor
-    // Preconditions:
-    //   - for any index idx, if extents().contains(idx),
-    //     for i = [0,rank), idx[i] * stride[i] must be representable as
-    //     ptrdiff_t
-    //   - for any index idx, if extents().contains(idx),
-    //     (*this)[idx] must refer to a valid memory location
-    _CONSTEXPR array_view(pointer data, extents_type bounds, indices_type stride) _NOEXCEPT
-        : Base{ data, std::move(bounds), std::move(stride) }
-    {
-    }
-
-    _CONSTEXPR array_view(pointer data, extents_type bounds, array_layout_t layout) _NOEXCEPT
-        : Base{ data, std::move(bounds), layout }
-    {
-    }
-
-    // from Viewable (has size, data) which is not array_view, only if
-    // this->rank
-    // == 1
+    // from Viewable (a non-array_view type that has size() and data())
+    // enabled only if this->rank == 1
     template <
         typename Viewable,
-        typename = std::enable_if_t<rank == 1 && details::is_viewable<Viewable, value_type>::value && !details::is_array_view<Viewable>::value> >
+        typename = std::enable_if_t<Rank == 1
+            && details::is_viewable<Viewable, value_type>::value
+            && !details::is_array_view<Viewable>::value> >
     _CONSTEXPR array_view(Viewable&& cont)
-        : Base{ cont.data(), static_cast<typename extents_type::value_type>(cont.size()), 1 }
+        : array_view(cont.data(), static_cast<extent_type>(cont.size()), 1)
     {
     }
 
     // from ArrayType
-    // Preconditions: product of the ArrayType extents must be <= ptrdiff_t max.
     template <
         typename ArrayType,
         typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<std::remove_all_extents_t<ArrayType> >,
                                         pointer>::value
             && std::is_same<std::remove_cv_t<std::remove_all_extents_t<ArrayType> >,
                                         std::remove_cv_t<value_type> >::value
-            && std::rank<ArrayType>::value == rank> >
-    _CONSTEXPR array_view(ArrayType& data) _NOEXCEPT
-        : Base{
-            details::to_pointer(data), details::make_bounds<ArrayType>(),
-            details::make_stride(details::make_bounds<ArrayType>()),
+            && std::rank<ArrayType>::value == Rank> >
+    constexpr array_view(ArrayType& data) noexcept
+        : array_view(
+              details::to_pointer(data), details::make_bounds<ArrayType>(),
+              details::make_stride(details::make_bounds<ArrayType>()))
+    {
+    }
+
+    // assigment, shallow copy
+    template <typename U,
+        typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<U>,
+                                        pointer>::value
+            && std::is_same<std::remove_cv_t<U>,
+                                        std::remove_cv_t<value_type> >::value> >
+    constexpr array_view& operator=(
+        const array_view<U, rank>& rhs) noexcept
+    {
+        bnd = rhs.bnd;
+        srd = rhs.srd;
+        data_ptr = rhs.data_ptr;
+        return *this;
+    }
+
+    // assigment, deep copy
+    template <typename U,
+        typename = std::enable_if_t<!std::is_const<T>::value
+            && std::is_convertible<U, T>::value> >
+    const array_view&
+    operator<<=(array_view<U, Rank> x) const
+    {
+        copy_from_same_shape_array_view(x);
+        return *this;
+    }
+
+    template <typename U,
+        typename = std::enable_if_t<!std::is_const<T>::value
+            && std::is_convertible<U, T>::value> >
+    array_view&
+    operator<<=(array_view<U, Rank> x)
+    {
+        copy_from_same_shape_array_view(x);
+        return *this;
+    }
+
+    // observers
+    constexpr pointer data() const noexcept { return data_ptr; }
+
+    constexpr const std::array<extent_type, Rank>& extents() const noexcept { return bnd; }
+    constexpr extent_type extents(rank_type i) const noexcept { return bnd[i]; }
+
+    constexpr const std::array<index_type, Rank>& strides() const noexcept { return srd; }
+    constexpr index_type strides(rank_type i) const noexcept { return srd[i]; }
+
+    constexpr size_type size() const noexcept
+    {
+        size_type ret = bnd[0];
+        for (rank_type i = 1; i < rank; ++i)
+            ret *= bnd[i];
+        return ret;
+    }
+
+    constexpr bool empty() const noexcept
+    {
+        for (rank_type i = 0; i < Rank; ++i) {
+            if (bnd[i] == 0)
+                return true;
         }
-    {
+        return false;
     }
 
-    using Base::operator[];
-    using Base::operator();
-
-#if 0
-    // Returns a slice of the view.
-    // Preconditions: slice < (*this).extents()[0]
-    template <rank_type _dummy_rank = rank>
-    _CONSTEXPR details::slice_return_type_t<ARRAY_VIEW_NAMESPACE::array_view, value_type, Rank>
-    operator[](typename std::enable_if<_dummy_rank != 1,
-        typename index_type::value_type>::type
-            slice) const _NOEXCEPT
+    // element access
+    constexpr reference operator[](const indices_type& idx) const noexcept
     {
-        static_assert(_dummy_rank == rank,
-            "_dummy_rank must have the default value!");
-        assert(slice < Base::bnd[0]);
-
-        index_type idx;
-        idx[0] = slice;
-
-        ARRAY_VIEW_NAMESPACE::bounds<rank - 1> bound;
-        ARRAY_VIEW_NAMESPACE::index<rank - 1> stride;
-        for (int i = 1; i < rank; ++i) {
-            bound[i - 1] = Base::bnd[i];
-            stride[i - 1] = Base::srd[i];
+        assert(is_within_extents(idx, bnd));
+        auto ptr = data_ptr;
+        for (int i = 0; i < rank; i++) {
+            ptr += idx[i] * srd[i];
         }
+        return *ptr;
+    }
 
-        return { bound, stride, &operator[](idx) };
-    }
-#endif
-    _CONSTEXPR pointer data() const _NOEXCEPT
+    constexpr reference operator()(index_type x) const noexcept
     {
-        return Base::data_ptr;
+        static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
+        return data_ptr[x * srd[0]];
     }
+    constexpr array_view<T, 1> operator()(slice_bounds x) const noexcept
+    {
+        static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
+        return array_view<T, 1>(data_ptr, x.length(bnd[0]), srd);
+    }
+    constexpr reference operator()(index_type x, index_type y) const noexcept
+    {
+        static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
+        return data_ptr[x * srd[0] + y * srd[1]];
+    }
+    constexpr array_view<T, 1> operator()(slice_bounds x, index_type y) const noexcept
+    {
+        static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
+        return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y * srd[1], x.length(bnd[0]), srd[0]);
+    }
+    constexpr array_view<T, 1> operator()(index_type x, slice_bounds y) const noexcept
+    {
+        static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
+        return array_view<T, 1>(data_ptr + x * srd[0] + y.from.index(bnd[1]) * srd[1], y.length(bnd[1]), srd[1]);
+    }
+    constexpr array_view<T, 2> operator()(slice_bounds x, slice_bounds y) const noexcept
+    {
+        static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
+        return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y.from.index(bnd[1]) * srd[1], { x.length(bnd[0]), y.length(bnd[1]) }, srd);
+    }
+
+    struct iterator;
+
+    // traversal
+    iterator begin() const
+    {
+        iterator it;
+        prepare_iterator(it);
+        it.idx.fill(0);
+        return it;
+    }
+    iterator end() const
+    {
+        iterator it;
+        prepare_iterator(it);
+        it.idx = bnd;
+        return it;
+    }
+
+private:
+    // helper functions
+    template <typename U,
+        typename = std::enable_if_t<!std::is_const<T>::value
+            && std::is_convertible<U, T>::value> >
+    void copy_from_same_shape_array_view(const array_view<U, Rank>& x) const
+    {
+        //todo this could be optimized for special cases
+        assert(bnd == x.extents());
+        auto it_end = this->end();
+        for (auto it = this->begin(); it != it_end; ++it) {
+            *it = x[it.indices()];
+        }
+    }
+    void prepare_iterator(iterator& it) const
+    {
+        it.that = this;
+        std::iota(it.dim_permut.begin(), it.dim_permut.end(), 0);
+        auto strides = srd;
+        std::sort(
+            make_random_access_iterator_pair(strides.begin(), it.dim_permut.begin()),
+            make_random_access_iterator_pair(strides.end(), it.dim_permut.end()));
+    }
+
+public:
+    // linearizer iterator
+    // traverses array_view in an efficient manner (no jumps)
     //todo treat rank==1 as special case (specialize template)
-    struct iterator : public std::iterator<std::bidirectional_iterator_tag,
-                          value_type, std::ptrdiff_t, pointer, reference> {
-        const this_type* that;
+    struct iterator
+        : public std::iterator<std::bidirectional_iterator_tag,
+              value_type, std::ptrdiff_t, pointer, reference> {
+        friend class array_view;
+
+    private:
+        const array_view* that;
         indices_type idx;
         std::array<int, Rank> dim_permut; //strides[dim_permut[i]] is sorted
+    public:
+        // comparison
+        constexpr bool operator==(const iterator& x) const noexcept
+        {
+            assert(that == x.that);
+            return that == x.that && idx == x.idx;
+        }
+        constexpr bool operator!=(const iterator& x) const noexcept { return !((*this) == x); }
 
-        reference operator*() const { return (*that)[idx]; }
+        // observers
+        constexpr reference operator*() const noexcept { return (*that)[idx]; }
+        constexpr pointer operator->() const noexcept { return &(operator*()); }
+        constexpr indices_type indices() const noexcept { return idx; }
+
+        // modifiers
         iterator& operator++()
         {
             rank_type i = 0;
@@ -739,63 +732,24 @@ public:
             operator--();
             return x;
         }
-        bool operator==(const iterator& x) const
-        {
-            assert(that == x.that);
-            return that == x.that && idx == x.idx;
-        }
-        bool operator!=(const iterator& x) const { return !((*this) == x); }
-        pointer operator->() const { return &(operator*()); }
     };
-    void prepare_iterator(iterator& it) const
-    {
-        it.that = this;
-        std::iota(it.dim_permut.begin(), it.dim_permut.end(), 0);
-        auto strides = Base::srd;
-        std::sort(
-            make_random_access_iterator_pair(strides.begin(), it.dim_permut.begin()),
-            make_random_access_iterator_pair(strides.end(), it.dim_permut.end()));
-    }
-    iterator begin() const
-    {
-        iterator it;
-        prepare_iterator(it);
-        it.idx.fill(0);
-        return it;
-    }
-    iterator end() const
-    {
-        iterator it;
-        prepare_iterator(it);
-        it.idx = Base::bnd;
-        return it;
-    }
 };
 
 template <typename T, typename U, rank_type Rank,
     typename = std::enable_if_t<std::is_same<std::remove_cv_t<T>, std::remove_cv_t<U> >::value> >
-bool is_same_view(const array_view<T, Rank>& x,
-    const array_view<U, Rank>& y)
+constexpr bool is_same_view(const array_view<T, Rank>& x,
+    const array_view<U, Rank>& y) noexcept
 {
     return x.data() == y.data() && x.extents() == y.extents() && x.strides() == y.strides();
 }
 
-template <typename T, rank_type Rank>
-array_view<T> subvector(array_view<T, Rank> av,
-    typename array_view<T, Rank>::indices_type idx,
-    rank_type dim,
-    index_or_fromend_or_length ifl = ::sx::end,
-    index_type stride = 1)
+template <rank_type Rank = 1, typename T>
+constexpr array_view<T, Rank> make_array_view(T* data, details::extents_template<Rank> e,
+    details::indices_template<Rank> s) noexcept
 {
-    return array_view<T>(&av[idx], ifl.index(idx[dim], av.extents(dim)) - av.extents(dim), av.strides(dim));
+    return { data, e, s };
 }
 
-template <typename T, rank_type Rank = 1>
-array_view<T, Rank> make_array_view(T* data, details::extents_template<Rank> e,
-    details::indices_template<Rank> s)
-{
-    return { data, std::move(e), std::move(s) };
-}
 } //namespace sx
 
 #endif // _IMPL_ARRAY_VIEW_H_
