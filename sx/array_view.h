@@ -750,6 +750,9 @@ constexpr array_view<T, Rank> make_array_view(T* data, details::extents_template
     return { data, e, s };
 }
 
+template<typename T>
+using matrix_view = array_view<T, 2>;
+
 } //namespace sx
 
 #endif // _IMPL_ARRAY_VIEW_H_

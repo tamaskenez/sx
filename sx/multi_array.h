@@ -112,6 +112,13 @@ public:
         return view()(v...);
     }
 
+    void reserve(const extents_type& e) {
+        size_type s = 1;
+        for(auto i:e) s *= i;
+        d.reserve(s);
+    }
+    void resize(const extents_type& e, array_layout_t layout, T t = T());
+
     using base_type::empty;
 };
 
