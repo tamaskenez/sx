@@ -1,6 +1,6 @@
 # sx
 
-My own c++ utilities, includes components like:
+C++ utilities, includes components like:
 
 - array_view, initially started from Łukasz Mendakiewicz's C++ proposal [N4512](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4512.html) but since then I've rewritten it almost completely based on
   + the comments and critiques on the [Google ISO C++ forum](https://groups.google.com/a/isocpp.org/forum/#!forum/std-proposals)
@@ -15,3 +15,4 @@ My own c++ utilities, includes components like:
 - `sort`, `sortperm` (like in MatLab/Julia) for array_view
 - `static_const`, Niebler's customization point solution, copied from his range-v3 lib
 
+This is an unstable work in progress, developing while porting scikit-learn's Random Forest
