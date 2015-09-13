@@ -50,20 +50,17 @@ public:
     {
         update_base();
     }
-    multi_array(const extents_type& e, const indices_type& s)
-        : base_type(nullptr, e, s)
-        , d(linear_index(e, s))
-    {
-    }
-    explicit multi_array(const extents_type& e)
+    explicit multi_array(const extents_type& e, const T& value = T())
         : base_type(nullptr, e, array_layout::c_order)
-        , d(linear_index(e, base_type::srd))
+        , d(linear_index(e, base_type::srd), value)
     {
+        update_base();
     }
-    explicit multi_array(const extents_type& e, array_layout_t layout)
+    explicit multi_array(const extents_type& e, array_layout_t layout, const T& value = T())
         : base_type(nullptr, e, layout)
-        , d(linear_index(e, base_type::srd))
+        , d(linear_index(e, base_type::srd), value)
     {
+        update_base();
     }
     template <typename U>
     multi_array& operator=(const array_view<U, Rank>& x); //todo
@@ -111,13 +108,6 @@ public:
     {
         return view()(v...);
     }
-
-    void reserve(const extents_type& e) {
-        size_type s = 1;
-        for(auto i:e) s *= i;
-        d.reserve(s);
-    }
-    void resize(const extents_type& e, array_layout_t layout, T t = T());
 
     using base_type::empty;
 };

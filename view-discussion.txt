@@ -1,0 +1,29 @@
+How to declare view to const content:
+1. it's always const, there's no view to mutable content
+2. view<const T>
+3. const view<T>
+
+Shallow compare: how to compare views (if they refer the same memory)
+1. not possible
+2. operator==
+3. named function (e.g. is_same_view(view1, view2))
+
+Deep compare: how to compare content:
+1. with external code (std::equal)
+2. operator==
+3. named function (e.g. deep_equals(view1, view2))
+
+Deep per-item compare of two identically sized views (returns bool array)
+1. with external code
+2. operator==
+3. named function
+
+Shallow copy (reassign view)
+1. not possible
+2. operator=
+3. named function
+
+Deep copy
+1. with external code
+2. operator=
+3. named function
