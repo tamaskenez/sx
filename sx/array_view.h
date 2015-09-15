@@ -4,9 +4,11 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <numeric>
+
+#include "range/utility/static_const.hpp"
 
 #include "sx/coordinate.h"
-#include "range/utility/static_const.hpp"
 #include "sx/random_access_iterator_pair.h"
 
 namespace sx {

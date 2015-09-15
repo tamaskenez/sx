@@ -19,7 +19,7 @@
 //#include <functional>
 //#include <initializer_list>
 #include <range/range_fwd.hpp>
-//#include <range/v3/utility/static_const.hpp>
+#include <range/utility/static_const.hpp>
 //#include <range/v3/utility/dangling.hpp>
 //#include <range/v3/utility/iterator.hpp>
 

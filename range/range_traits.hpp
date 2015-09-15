@@ -44,7 +44,10 @@ namespace ranges
 //
 //        template<typename Rng>
 //        using range_value_t = concepts::InputRange::value_t<Rng>;
-//
+
+          template<typename Rng>
+        using range_value_t = std::remove_cv_t<typename range_iterator_t<Rng>::value_type>;
+
 //        template<typename Rng>
 //        using range_reference_t = concepts::InputRange::reference_t<Rng>;
 //

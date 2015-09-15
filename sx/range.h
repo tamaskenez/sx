@@ -1,6 +1,7 @@
 #ifndef RANGE_INCLUDED_207920893423
 #define RANGE_INCLUDED_207920893423
 
+#include <cassert>
 #include <type_traits>
 #include <iterator>
 

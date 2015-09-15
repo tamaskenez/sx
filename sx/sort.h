@@ -1,6 +1,9 @@
 #ifndef SORT_INCLUDED_273409823434
 #define SORT_INCLUDED_273409823434
 
+#include "sx/array_view.h"
+#include "sx/multi_array.h"
+
 namespace sx {
 
 template <typename ForwardItLower, typename ForwardItValue, typename ForwardItUpper>
@@ -67,7 +70,7 @@ multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
     std::vector<T> w(X.extents(dim));
 
     // iterate over X, fixing it[dim] to 0
-    std::array<typename ResultArray::size_type, Rank> lower_bounds, it, e;
+    std::array<index_type, Rank> lower_bounds, it, e;
     lower_bounds.fill(0);
     it.fill(0);
     std::copy_n(X.extents().begin(), Rank, e.begin());
@@ -92,6 +95,49 @@ multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
     }
     return R;
 }
+
+// return indices of maximum values along a dimension
+template<typename T, rank_type Rank,
+    typename = std::enable_if_t<(Rank > 1)>>
+multi_array<std::remove_const_t<T>, Rank - 1>
+indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout) {
+
+    auto extents = X.extents();
+    std::rotate(extents.begin() + dim, extents.begin() + dim + 1, extents.end());
+
+    multi_array<std::remove_const_t<T>, Rank - 1> R(extents, layout);
+
+    // iterate over X, fixing it[dim] to 0
+    std::array<index_type, Rank> lower_bounds, it, e;
+    lower_bounds.fill(0);
+    it.fill(0);
+    std::copy_n(X.extents().begin(), Rank, e.begin());
+    e[dim] = 1;
+
+    for (;;) {
+        auto xv = make_array_view<1>(&X[it], X.extents(dim), X.strides(dim));
+        auto it_max = std::max_element(BEGINEND(xv));
+        auto it_dim(it);
+        std::rotate(it_dim.begin() + dim, it_dim.begin() + dim + 1, it_dim.end());
+        R[it] = it_max - xv.begin();
+
+        if (!next_variation(lower_bounds.begin(), it.begin(), e.begin(), Rank))
+            break;
+    }
+    return R;
+}
+
+template<typename T, rank_type Rank,
+    typename = std::enable_if_t<(Rank > 1)>>
+multi_array<std::remove_const_t<T>, Rank - 1>
+indmax_along(array_view<T, Rank> X, rank_type dim) {
+    return indmax_along(X, dim,
+        X.strides.front() > X.strides.back()
+        ? array_layout::c_order
+        : array_layout::fortran_order
+    );
+}
+
 }
 
 #endif
