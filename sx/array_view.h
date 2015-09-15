@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "sx/coordinate.h"
-#include "sx/static_const.h"
+#include "range/utility/static_const.hpp"
 #include "sx/random_access_iterator_pair.h"
 
 namespace sx {
@@ -237,7 +237,7 @@ struct end_fn {
 namespace {
     // `end` global static object, used when specifying slices the matlab way:
     // e.g. {2, end-3}
-    constexpr auto&& end = static_const<end_fn>::value;
+    constexpr auto&& end = ranges::static_const<end_fn>::value;
 }
 
 //`fromend_value` is the type of the expression `end - <integral>`
@@ -283,7 +283,7 @@ struct length_fn {
 
 namespace {
     //static global `length` object
-    constexpr auto&& length = static_const<length_fn>::value;
+    constexpr auto&& length = ranges::static_const<length_fn>::value;
 }
 
 //type of static global `all` object for the
@@ -293,7 +293,7 @@ struct all_fn {
 
 namespace {
     //static global `all` object
-    constexpr auto&& all = static_const<all_fn>::value;
+    constexpr auto&& all = ranges::static_const<all_fn>::value;
 }
 
 //base type for the union type of the expressions
@@ -533,9 +533,9 @@ public:
     constexpr array_view& operator=(
         const array_view<U, rank>& rhs) noexcept
     {
-        bnd = rhs.bnd;
-        srd = rhs.srd;
-        data_ptr = rhs.data_ptr;
+        bnd = rhs.extents();
+        srd = rhs.strides();
+        data_ptr = rhs.data();
         return *this;
     }
 
