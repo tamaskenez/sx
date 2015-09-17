@@ -45,6 +45,7 @@ namespace sx {
 	}
 
 	#define CSTRINGF(x, ...) (::sx::stringf(x,__VA_ARGS__).c_str())
+
 };
 
 #endif

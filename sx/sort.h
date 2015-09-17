@@ -65,7 +65,8 @@ template <typename T, typename U, rank_type Rank>
 multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
 {
     using ResultArray = multi_array<T, Rank>;
-    ResultArray R(X.extents(), X.strides());
+    ResultArray R(X.extents(), X.strides().front() > X.strides().back() ?
+        array_layout::c_order : array_layout::fortran_order);
 
     std::vector<T> w(X.extents(dim));
 
@@ -103,9 +104,11 @@ multi_array<std::remove_const_t<T>, Rank - 1>
 indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout) {
 
     auto extents = X.extents();
+    std::array<extent_type, Rank-1> extents_dim;
     std::rotate(extents.begin() + dim, extents.begin() + dim + 1, extents.end());
+    std::copy_n(extents.begin(), Rank-1, extents_dim.begin());
 
-    multi_array<std::remove_const_t<T>, Rank - 1> R(extents, layout);
+    multi_array<std::remove_const_t<T>, Rank - 1> R(extents_dim, layout);
 
     // iterate over X, fixing it[dim] to 0
     std::array<index_type, Rank> lower_bounds, it, e;
@@ -117,9 +120,12 @@ indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout) {
     for (;;) {
         auto xv = make_array_view<1>(&X[it], X.extents(dim), X.strides(dim));
         auto it_max = std::max_element(BEGINEND(xv));
-        auto it_dim(it);
-        std::rotate(it_dim.begin() + dim, it_dim.begin() + dim + 1, it_dim.end());
-        R[it] = it_max - xv.begin();
+        auto it_rot(it);
+        std::rotate(it_rot.begin() + dim, it_rot.begin() + dim + 1, it_rot.end());
+        //todo this could be done without a copy with a reinterpret_cast
+        std::array<extent_type, Rank-1> it_dim;
+        std::copy_n(it_rot.begin(), Rank-1, it_dim.begin());
+        R[it_dim] = it_max - xv.begin();
 
         if (!next_variation(lower_bounds.begin(), it.begin(), e.begin(), Rank))
             break;
@@ -132,7 +138,7 @@ template<typename T, rank_type Rank,
 multi_array<std::remove_const_t<T>, Rank - 1>
 indmax_along(array_view<T, Rank> X, rank_type dim) {
     return indmax_along(X, dim,
-        X.strides.front() > X.strides.back()
+        X.strides().front() > X.strides().back()
         ? array_layout::c_order
         : array_layout::fortran_order
     );

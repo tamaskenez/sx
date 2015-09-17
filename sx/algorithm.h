@@ -9,6 +9,34 @@
 
 namespace sx {
 
+    /* Many mutating functions here follow to pattern I found in Niebler's range-v3:
+       
+       The same function is implemented in 2 flavors:
+       
+           void foo(T& range, ...) {
+               //modifies 'range' in-place
+               ...
+           }
+        
+        and
+
+           T foo(T&& range, ...) {
+               //modifies 'range'
+               ...
+               return std::move(range); // and moves it out
+           }
+           
+        The two use cases:
+        
+            std::vector<int> bar;
+            ... // work on 'bar'
+            foo(bar);
+            
+        and
+        
+            auto bar = foo(another_foo_returning_vector(...));
+
+    */
 	template<typename Range>
 	void unique_range(Range& rng) {
 		rng.erase(std::unique(BEGINEND(rng)), rng.end());
@@ -38,15 +66,44 @@ namespace sx {
 		return c;
 	}
 
-    template<typename R1, typename R2>
-    void set_difference_range(R1& r1, R2&& r2) {
-        r1.erase(std::set_difference(BEGINEND(r1), BEGINEND(r2)), ranges::end(r1));
+    template<typename R1, typename R2, typename Cont>
+    void set_difference_range(R1&& r1, R2&& r2, Cont& cont) {
+        cont.resize(r1.size());
+        cont.erase(
+            std::set_difference(BEGINEND(r1), BEGINEND(r2), cont.begin())
+            , cont.end());
+    }
+
+    template<typename R1, typename R2, typename Cont>
+    Cont set_difference_range(R1&& r1, R2&& r2, Cont&& cont) {
+        set_difference_range(r1, r2, cont);
+        return std::move(cont);
     }
 
     template<typename R1, typename R2>
-    R1 set_difference_range(R1&& r1, R2&& r2) {
-        r1.erase(std::set_difference(BEGINEND(r1), BEGINEND(r2)), ranges::end(r1));
-        return std::move(r1);
+    std::vector<ranges::range_value_t<R1>>
+    set_difference_range(R1&& r1, R2&& r2) {
+        return set_difference_range(r1, r2, std::vector<ranges::range_value_t<R1>>());
+    }
+
+    template<typename R1, typename R2, typename Cont>
+    void set_intersection_range(R1&& r1, R2&& r2, Cont& cont) {
+        cont.resize(r1.size());
+        cont.erase(
+            std::set_intersection(BEGINEND(r1), BEGINEND(r2), cont.begin())
+            , cont.end());
+    }
+
+    template<typename R1, typename R2, typename Cont>
+    Cont set_intersection_range(R1&& r1, R2&& r2, Cont&& cont) {
+        set_intersection_range(r1, r2, cont);
+        return std::move(cont);
+    }
+
+    template<typename R1, typename R2>
+    std::vector<ranges::range_value_t<R1>>
+    set_intersection_range(R1&& r1, R2&& r2) {
+        return set_intersection_range(r1, r2, std::vector<ranges::range_value_t<R1>>());
     }
 
     template<typename X, typename Y>
@@ -68,8 +125,19 @@ namespace sx {
     }
 
     template<typename X, typename Y>
-    void range_div_scalar(X&& x, const Y& y) {
+    void range_div_scalar(X& x, const Y& y) {
         for(auto&xi: x) xi /= y;
+    }
+
+    template<typename X, typename Y>
+    X range_mul_scalar(X&& x, const Y& y) {
+        for(auto&xi: x) xi *= y;
+        return std::move(x);
+    }
+
+    template<typename X, typename Y>
+    void range_mul_scalar(X& x, const Y& y) {
+        for(auto&xi: x) xi *= y;
     }
 
 	//like numpy searchsorted
@@ -125,6 +193,54 @@ namespace sx {
 
 	template<typename Rng>
 	bool isempty(Rng&& rng) { return rng.empty(); }
+
+    // bincount(<rvalue-for-result>, range) -> <result>
+    // bincount(<lvalue-for-result>, range) -> void
+    // bincount<T>(range) -> std::vector<T>
+    // works like numpy.bincount
+    template<typename Result, typename Rng,
+        typename = std::enable_if_t<
+            std::is_integral<
+                ranges::range_value_t<Rng>
+            >::value
+        >
+    >
+    void bincount(Result& result, Rng&& rng) {
+        if(rng.empty())
+            result.clear();
+        else {
+            auto mm = std::minmax_element(BEGINEND(rng));
+            assert(*mm.first >= 0);
+            result.assign(*mm.second + 1, 0);
+            for(auto&x: rng)
+                ++result[x];
+        }
+    }
+
+    template<typename Result, typename Rng,
+        typename = std::enable_if_t<
+            std::is_integral<
+                ranges::range_value_t<Rng>
+            >::value
+        >
+    >
+    Result bincount(Result&& result, Rng&& rng) {
+        bincount(result, rng);
+        return std::move(result);
+    }
+
+
+    template<typename T, typename Rng,
+        typename = std::enable_if_t<
+            std::is_integral<
+                ranges::range_value_t<Rng>
+            >::value
+        >
+    >
+    std::vector<T> bincount(Rng&& x) {
+        return bincount(std::vector<T>(), x);
+    }
+
 }
 
 #endif

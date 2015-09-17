@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 #include <numeric>
+#include <cmath>
 
 #include "range/utility/static_const.hpp"
 #include "range/range_traits.hpp"
@@ -283,7 +284,7 @@ struct length_fn {
         return length_value<I>(i);
     }
     template<typename Rng>
-    constexpr bool operator()(Rng&& rng) const { return rng.size(); }
+    ranges::range_size_t<Rng> operator()(Rng&& rng) const { return rng.size(); }
 };
 
 namespace {
@@ -687,11 +688,11 @@ private:
     void copy_from_range_to_1d(Rng&& x) const
     {
         static_assert(Rank==1, "");
-        assert(extents(0) == x.size());
+        assert(extents(0) == ranges::end(x) - ranges::begin(x));
         auto it = ranges::begin(x);
-        auto e = ranges::end(x);
+//        auto e = ranges::end(x);
         for(index_type i = 0; i < extents(0); ++i, ++it)
-            (this)[i] = *it;
+            (*this)[i] = *it;
     }
     void prepare_iterator(iterator& it) const
     {
@@ -898,6 +899,86 @@ constexpr array_view<const T> make_array_view(const std::vector<T>& v) noexcept
 
 template<typename T>
 using matrix_view = array_view<T, 2>;
+
+
+inline std::string mat2str(double d) {
+    if(std::isnan(d))
+        return "NaN";
+    if(std::isinf(d))
+        return d < 0 ? "-Inf" : "Inf";
+    int i = 0;
+    double d2 = d;
+    const double kEps = 1e-15;
+    for(; i <= 15; ++i, d2 *= 10.0) {
+        if(fabs(round(d2)-d2) < kEps) break;
+    }
+    char buf[100];
+    sprintf(buf, "%.*f", i, d);
+    return buf;
+}
+
+inline std::string mat2str(int i) {
+    char buf[100];
+    sprintf(buf, "%d", i);
+    return buf;
+}
+
+template<typename T,
+    typename = std::enable_if_t<
+        std::is_arithmetic<T>::value
+    >
+>
+std::string mat2str(array_view<T, 1> X) {
+    std::string result;
+    result = "[";
+    bool first = true;
+    for(auto x: X) {
+        if(!first)
+            result += " ";
+        else
+            first = false;
+        result += mat2str(x);
+    }
+    result += "]";
+    return result;
+}
+
+template<typename T,
+    typename = std::enable_if_t<
+        std::is_arithmetic<T>::value
+    >
+>
+std::string mat2str(array_view<T, 2> x) {
+    std::string result;
+    result = "[";
+    bool first_row = true;
+    for(index_type i = 0; i < x.extents(0); ++i) {
+        if(!first_row)
+            result += ";";
+        else
+            first_row = false;
+        bool first_col = true;
+        for(index_type j = 0; j < x.extents(1); ++j) {
+            if(!first_col)
+                result += " ";
+            else
+                first_col = false;
+            result += num2str(x(i, j));
+        }
+    }
+    result += "]";
+    return result;
+}
+
+template<typename T,
+    typename = std::enable_if_t<
+        std::is_arithmetic<T>::value
+    >
+>
+std::string mat2str(const std::vector<T>& x) {
+    return mat2str(make_array_view(x));
+}
+
 
 } //namespace sx
 

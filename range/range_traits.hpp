@@ -36,11 +36,11 @@ namespace ranges
 //        template<typename Rng>
 //        using range_sentinel_t = concepts::Range::sentinel_t<Rng>;
 //
-//        template<typename Rng>
-//        using range_difference_t = concepts::Range::difference_t<Rng>;
+        template<typename Rng>
+        using range_difference_t = typename range_iterator_t<Rng>::difference_type;
 //
-//        template<typename Rng>
-//        using range_size_t = meta::_t<std::make_unsigned<range_difference_t<Rng>>>;
+        template<typename Rng>
+        using range_size_t = typename std::make_unsigned<range_difference_t<Rng>>::type;
 //
 //        template<typename Rng>
 //        using range_value_t = concepts::InputRange::value_t<Rng>;
