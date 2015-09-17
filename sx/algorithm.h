@@ -10,21 +10,67 @@
 namespace sx {
 
 	template<typename Range>
-	void unique_inplace(Range& rng) {
+	void unique_range(Range& rng) {
 		rng.erase(std::unique(BEGINEND(rng)), rng.end());
 	}
 
+	template<typename Range>
+	Range unique_range(Range&& rng) {
+		rng.erase(std::unique(BEGINEND(rng)), rng.end());
+        return std::move(rng);
+	}
+
     template<typename Range>
-	void sort_unique_inplace(Range& rng) {
+	void sort_unique_range(Range& rng) {
 		std::sort(BEGINEND(rng));
-		unique_inplace(rng);
+		unique_range(rng);
+	}
+
+	template<typename Range>
+	Range sort_unique_range(Range&& rng) {
+		std::sort(BEGINEND(rng));
+		return unique_range(std::move(rng));
 	}
 
 	template<typename Container, typename First, typename Last>
-	void append_inplace(Container& c, First first, Last last) {
+	void insert_at_end(Container& c, First first, Last last) {
 		c.insert(c.end(), first, last);
 		return c;
 	}
+
+    template<typename R1, typename R2>
+    void set_difference_range(R1& r1, R2&& r2) {
+        r1.erase(std::set_difference(BEGINEND(r1), BEGINEND(r2)), ranges::end(r1));
+    }
+
+    template<typename R1, typename R2>
+    R1 set_difference_range(R1&& r1, R2&& r2) {
+        r1.erase(std::set_difference(BEGINEND(r1), BEGINEND(r2)), ranges::end(r1));
+        return std::move(r1);
+    }
+
+    template<typename X, typename Y>
+    Y scalar_div_range(const X& x, Y&& y) {
+        for(auto&yi: y) yi = x / yi;
+        return std::move(y);
+    }
+
+    template<typename X, typename Y>
+    void scalar_div_range(const X& x, Y& y) {
+        for(auto&yi: y) yi = x / yi;
+
+    }
+
+    template<typename X, typename Y>
+    X range_div_scalar(X&& x, const Y& y) {
+        for(auto&xi: x) xi /= y;
+        return std::move(x);
+    }
+
+    template<typename X, typename Y>
+    void range_div_scalar(X&& x, const Y& y) {
+        for(auto&xi: x) xi /= y;
+    }
 
 	//like numpy searchsorted
 	//it's like a vectorized lower_bound returning indices instead of iterators
@@ -33,7 +79,7 @@ namespace sx {
 		std::vector<SizeT> result;
 		result.reserve(v.size());
 		for(auto&x: v)
-			result.push_back(std::lower_bound(BEGINEND(a), v) - a.begin());
+			result.push_back(std::lower_bound(BEGINEND(a), x) - a.begin());
 		return result;
 	}
 
@@ -47,19 +93,19 @@ namespace sx {
 
 	template<typename Rng>
 	ranges::range_value_t<Rng> sum(Rng&& rng) {
-		return sum<ranges::range_value_t<Rng>, Rng>(std::forward(rng));
+		return sum<ranges::range_value_t<Rng>, Rng>(rng);
 	}
 
 	template<typename T, typename Rng>
 	T mean(Rng&& rng) {
 		assert(!rng.empty());
-		return static_cast<T>(sum<T, Rng>(std::forward(rng)) / rng.size());
+		return static_cast<T>(sum<T, Rng>(rng) / rng.size());
 	}
 
-	//template<typename Rng>
-	//ranges::range_value_t<Rng> mean(Rng&& rng) {
-	//	return mean<ranges::range_value_t<Rng>, Rng>(std::forward(rng));
-	//}
+	template<typename Rng>
+	ranges::range_value_t<Rng> mean(Rng&& rng) {
+		return mean<ranges::range_value_t<Rng>, Rng>(rng);
+	}
 
 
 	template<typename X, typename Y, typename Z>
@@ -79,9 +125,6 @@ namespace sx {
 
 	template<typename Rng>
 	bool isempty(Rng&& rng) { return rng.empty(); }
-
-	template<typename Rng>
-	bool length(Rng&& rng) { return rng.size(); }
 }
 
 #endif

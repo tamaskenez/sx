@@ -6,9 +6,13 @@
 
 namespace sx {
 
+	template<typename T, typename Rng>
+	std::vector<T> make_vector(Rng&& rng) {
+		return {ranges::begin(rng), ranges::end(rng)};
+	}
 	template<typename Rng>
-	ranges::range_value_t<Rng> make_vector(Rng&& rng) {
-		return {begin(rng), end(rng)};
+	std::vector<ranges::range_value_t<Rng>> make_vector(Rng&& rng) {
+		return {ranges::begin(rng), ranges::end(rng)};
 	}
 }
 

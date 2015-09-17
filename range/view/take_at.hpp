@@ -44,12 +44,11 @@ namespace ranges
 				>::value;
 			};
 
-			// we need both to be random access range for sake of simplicity
-			// this could be relaxed for rngidcs
+            //todo certain memfns should be enabled depending
+            //on iterator_category
 			template<typename D, typename I,
 				typename = std::enable_if_t<
 					is_random_access_iterator<D>::value
-					&& is_random_access_iterator<I>::value
 				>
 			>
 			struct take_at_iterator
@@ -132,6 +131,13 @@ namespace ranges
 				bool operator>(const this_type& y) const { return y < *this; }
 				bool operator>=(const this_type& y) const { return !(*this < y); }
 				bool operator<=(const this_type& y) const { return !(*this > y); }
+
+                //operations
+                this_type operator+(difference_type y) const { this_type x(*this); x += y; return x; }
+                this_type operator-(difference_type y) const { this_type x(*this); x -= y; return x; }
+                difference_type operator-(const this_type& y) {
+                    return base_it - y.base_it;
+                }
 			};
 
 			template<typename D, typename I>
@@ -144,25 +150,24 @@ namespace ranges
             struct take_at_fn
             {
             public:
-				// we need both to be random access range for sake of simplicity
-				// this could be relaxed for rngidcs
                 template<typename RngData, typename RngIdcs,
 					typename = std::enable_if_t<
 						has_random_access_iterator<RngData>::value
-						&& has_random_access_iterator<RngIdcs>::value
 					>
 				>
                 range_default_sentinel<
-                    take_at_iterator<range_iterator_t<RngData>
-                    , range_iterator_t<RngIdcs>
+                    take_at_iterator<
+                        range_iterator_t<RngData>
+                        , range_iterator_t<RngIdcs>
                     >
                 >
 				operator()(RngData && rngdata, RngIdcs && rngidcs) const
                 {
 					using it_t = take_at_iterator<range_iterator_t<RngData>, range_iterator_t<RngIdcs>>;
+                    using idcs_iterator_cat_t = typename range_iterator_t<RngIdcs>::iterator_category;
                     return {
-						it_t{begin(rngdata), rngdata.size(), begin(rngidcs)}
-						, it_t{begin(rngdata), rngdata.size(), end(rngidcs)}
+						it_t(begin(rngdata), rngdata.size(), begin(rngidcs))
+						, it_t(begin(rngdata), rngdata.size(), end(rngidcs))
 					};
                 }
             };

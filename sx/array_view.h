@@ -7,7 +7,7 @@
 #include <numeric>
 
 #include "range/utility/static_const.hpp"
-
+#include "range/range_traits.hpp"
 #include "sx/coordinate.h"
 #include "sx/random_access_iterator_pair.h"
 
@@ -274,6 +274,7 @@ constexpr fromend_value<I> operator-(end_fn, I i)
 
 //type of static global `length` object for the
 //expression `length = <integral>`
+//also provides alternative syntax for range|container.size()
 struct length_fn {
     template <typename I,
         typename = std::enable_if<std::is_integral<I>::value> >
@@ -281,6 +282,8 @@ struct length_fn {
     {
         return length_value<I>(i);
     }
+    template<typename Rng>
+    constexpr bool operator()(Rng&& rng) const { return rng.size(); }
 };
 
 namespace {
@@ -380,6 +383,13 @@ public:
     {
         return smart_index_base::index_when_not_length(extent);
     }
+
+protected:
+    template <typename I>
+    constexpr index_or_fromend(I value, kind_t k)
+    : smart_index_base(value, k)
+    {
+    }
 };
 
 //the union type of the expressions, provides further constructor over
@@ -399,7 +409,7 @@ struct index_or_fromend_or_length : protected index_or_fromend {
     //`length = <integral>`
     template <typename I>
     constexpr index_or_fromend_or_length(length_value<I> l)
-        : smart_index_base(l.value, K_LENGTH)
+        : index_or_fromend(l.value, K_LENGTH)
     {
     }
 };
@@ -495,7 +505,7 @@ public:
                                         std::remove_cv_t<value_type> >::value> >
     constexpr array_view(
         const array_view<U, Rank>& rhs) noexcept
-        : array_view(rhs.data_ptr, rhs.bnd, rhs.srd)
+        : array_view(rhs.data(), rhs.extents(), rhs.strides())
     {
     }
 
@@ -541,7 +551,7 @@ public:
         return *this;
     }
 
-    // assigment, deep copy
+    // assigment from same-shape array_view (deep copy)
     template <typename U,
         typename = std::enable_if_t<!std::is_const<T>::value
             && std::is_convertible<U, T>::value> >
@@ -552,13 +562,17 @@ public:
         return *this;
     }
 
-    template <typename U,
-        typename = std::enable_if_t<!std::is_const<T>::value
-            && std::is_convertible<U, T>::value> >
-    array_view&
-    operator<<=(array_view<U, Rank> x)
+    template <typename Rng,
+        typename = std::enable_if_t<
+            !std::is_const<T>::value
+            && std::is_convertible<ranges::range_value_t<Rng>, T>::value
+            && Rank == 1
+        >
+    >
+    const array_view&
+    operator<<=(Rng&& x) const
     {
-        copy_from_same_shape_array_view(x);
+        copy_from_range_to_1d(x);
         return *this;
     }
 
@@ -599,6 +613,11 @@ public:
         return *ptr;
     }
 
+    //todo: probably this could be solved in a general way with some metaprogramming
+    //with variadic templates
+    //however I'm not sure a variadic template could handle
+    //the case where slice_bounds is initialized with {x, y} which has no
+    //type on its own
     constexpr reference operator()(index_type x) const noexcept
     {
         static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
@@ -627,7 +646,7 @@ public:
     constexpr array_view<T, 2> operator()(slice_bounds x, slice_bounds y) const noexcept
     {
         static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
-        return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y.from.index(bnd[1]) * srd[1], { x.length(bnd[0]), y.length(bnd[1]) }, srd);
+        return array_view<T, 2>(data_ptr + x.from.index(bnd[0]) * srd[0] + y.from.index(bnd[1]) * srd[1], { x.length(bnd[0]), y.length(bnd[1]) }, srd);
     }
 
     struct iterator;
@@ -656,11 +675,23 @@ private:
     void copy_from_same_shape_array_view(const array_view<U, Rank>& x) const
     {
         //todo this could be optimized for special cases
+        //(for example, two min(strides)=1 array_views, with same strides
         assert(bnd == x.extents());
         auto it_end = this->end();
         for (auto it = this->begin(); it != it_end; ++it) {
             *it = x[it.indices()];
         }
+    }
+    // helper functions
+    template<typename Rng>
+    void copy_from_range_to_1d(Rng&& x) const
+    {
+        static_assert(Rank==1, "");
+        assert(extents(0) == x.size());
+        auto it = ranges::begin(x);
+        auto e = ranges::end(x);
+        for(index_type i = 0; i < extents(0); ++i, ++it)
+            (this)[i] = *it;
     }
     void prepare_iterator(iterator& it) const
     {
@@ -670,6 +701,12 @@ private:
         std::sort(
             make_random_access_iterator_pair(strides.begin(), it.dim_permut.begin()),
             make_random_access_iterator_pair(strides.end(), it.dim_permut.end()));
+        extent_type s = 1;
+        for(int i = 0; i < Rank; ++i) {
+            auto dpi = it.dim_permut[i];
+            s *= extents(dpi);
+            it.cumprod_extents[dpi] = s;
+        }
     }
 
 public:
@@ -677,31 +714,50 @@ public:
     // traverses array_view in an efficient manner (no jumps)
     //todo treat rank==1 as special case (specialize template)
     struct iterator
-        : public std::iterator<std::bidirectional_iterator_tag,
+        : public std::iterator<std::random_access_iterator_tag,
               value_type, std::ptrdiff_t, pointer, reference> {
         friend class array_view;
 
     private:
-        const array_view* that;
+        array_view const * that = nullptr;
         indices_type idx;
         std::array<int, Rank> dim_permut; //strides[dim_permut[i]] is sorted
+        std::array<extent_type, Rank> cumprod_extents; //cumprod in the order of dim_permut
+
+        using iterator_base =
+            std::iterator<std::random_access_iterator_tag,
+              value_type, std::ptrdiff_t, pointer, reference>;
     public:
-        // comparison
-        constexpr bool operator==(const iterator& x) const noexcept
-        {
-            assert(that == x.that);
-            return that == x.that && idx == x.idx;
+        using this_type = iterator;
+        using iterator_category = typename iterator_base::iterator_category;
+        using value_type = typename iterator_base::value_type;
+        using difference_type = typename iterator_base::difference_type;
+        using pointer = typename iterator_base::pointer;
+        using reference = typename iterator_base::reference;
+
+        // construction, assignment
+        iterator() {
+            idx.fill(0);
+            dim_permut.fill(0);
+            cumprod_extents.fill(0);
         }
-        constexpr bool operator!=(const iterator& x) const noexcept { return !((*this) == x); }
+        iterator(const this_type&) = default;
+        iterator& operator=(const this_type&) = default;
 
         // observers
         constexpr reference operator*() const noexcept { return (*that)[idx]; }
         constexpr pointer operator->() const noexcept { return &(operator*()); }
-        constexpr indices_type indices() const noexcept { return idx; }
+        reference operator[](difference_type n) const {
+            auto new_lin_idx = (difference_type)to_linear_idx() + n;
+            assert(0 <= new_lin_idx && new_lin_idx <= cumprod_extents[dim_permut[Rank-1]]);
+            indices_type new_idx;
+            from_linear_idx(n, new_idx);
+            return that->operator[](new_idx);
+        }
+        constexpr const indices_type& indices() const noexcept { return idx; }
 
         // modifiers
-        iterator& operator++()
-        {
+        this_type& operator++() {
             rank_type i = 0;
             for (; i < Rank; ++i) {
                 int j = dim_permut[i];
@@ -711,8 +767,8 @@ public:
             }
             return *this;
         }
-        iterator& operator--()
-        {
+        this_type operator++(int) { this_type x(*this); ++(*this); return x; }
+        this_type& operator--() {
             rank_type i = 0;
             for (; i < Rank; ++i) {
                 int j = dim_permut[i];
@@ -722,20 +778,96 @@ public:
             }
             return *this;
         }
-        iterator operator++(int)
-        {
-            iterator x(*this);
-            operator++();
-            return x;
+        this_type operator--(int) const { this_type x(*this); --(*this); return x; }
+        void swap(this_type& y) {
+            using std::swap;
+            swap(that, y.that);
+            swap(idx, y.idx);
+            swap(dim_permut, y.dim_permut);
+            swap(cumprod_extents, y.cumprod_extents);
         }
-        iterator operator--(int)
-        {
-            iterator x(*this);
-            operator--();
-            return x;
+        //like x % y but the handling of negative x is such that
+        //the cyclic pattern of the remainder continues
+        static inline extent_type cyclic_remainder(difference_type x, extent_type y) {
+            assert(y>0);
+            if(x >= 0) return x % y;
+            return (y - (-x % y)) % y;
+        }
+        index_type to_linear_idx() const {
+            index_type r = 0;
+            extent_type cextj_prev = 1;
+            for(rank_type i = 0; i < Rank; ++i) {
+                auto j = dim_permut[i];
+                r += cextj_prev * idx[j];
+                cextj_prev = cumprod_extents[j];
+            }
+            return r;
+        }
+        void from_linear_idx(index_type n, indices_type& result) const {
+            assert(0 <= n && n <= cumprod_extents[dim_permut[Rank-1]]);
+            extent_type cextj_prev = 1;
+            for(rank_type i = 0; n != 0 && i < Rank; ++i) {
+                auto j = dim_permut[i];
+                const extent_type cextj = cumprod_extents[j];
+                result[j] = cyclic_remainder(n, cextj) / cextj_prev;
+                n -= result[j] * cextj_prev;
+                cextj_prev = cextj;
+            }
+        }
+        this_type& operator+=(difference_type n) {
+            auto new_lin_idx = (difference_type)to_linear_idx() + n;
+            assert(0 <= new_lin_idx && new_lin_idx <= cumprod_extents[dim_permut[Rank-1]]);
+            from_linear_idx(new_lin_idx, idx);
+            return *this;
+        }
+        this_type& operator-=(difference_type y) { (*this) += (-y); return *this; }
+
+        // comparison
+        bool operator==(const this_type& x) const {
+            assert(that == x.that);
+            return that == x.that && idx == x.idx;
+        }
+        bool operator!=(const this_type& y) const { return !(*this==y); }
+        bool operator<(const this_type& x) const {
+            assert(that == x.that);
+            assert(dim_permut == x.dim_permut);
+            for(int i = Rank - 1; i >= 0; --i) {
+                auto dpi = dim_permut[i];
+                auto rhs = idx[dpi];
+                auto lhs = x.idx[dpi];
+                if(rhs < lhs) return true;
+                if(rhs > lhs) return false;
+            }
+            return false; //they're equal
+        }
+        bool operator>(const this_type& y) const { return y < *this; }
+        bool operator>=(const this_type& y) const { return !(*this < y); }
+        bool operator<=(const this_type& y) const { return !(*this > y); } 
+
+        //operations
+        this_type operator+(difference_type y) const { this_type x(*this); x += y; return x; }
+        this_type operator-(difference_type y) const { this_type x(*this); x -= y; return x; }
+        difference_type operator-(const this_type& y) {
+            return static_cast<difference_type>(to_linear_idx()) - static_cast<difference_type>(y.to_linear_idx());
         }
     };
 };
+
+template <typename T, rank_type Rank>
+inline void swap(
+    typename array_view<T, Rank>::iterator& x,
+    typename array_view<T, Rank>::iterator& y)
+{
+    x.swap(y);
+}
+
+template <typename T, rank_type Rank>
+inline typename array_view<T, Rank>::iterator operator+(
+    typename array_view<T, Rank>::iterator::difference_type x,
+    const typename array_view<T, Rank>::iterator& y)
+{
+    return y + x;
+}
 
 template <typename T, typename U, rank_type Rank,
     typename = std::enable_if_t<std::is_same<std::remove_cv_t<T>, std::remove_cv_t<U> >::value> >
@@ -750,6 +882,18 @@ constexpr array_view<T, Rank> make_array_view(T* data, details::extents_template
     details::indices_template<Rank> s) noexcept
 {
     return { data, e, s };
+}
+
+template <typename T>
+constexpr array_view<T> make_array_view(std::vector<T>& v) noexcept
+{
+    return { v.data(), v.size(), 1 };
+}
+
+template <typename T>
+constexpr array_view<const T> make_array_view(const std::vector<T>& v) noexcept
+{
+    return { v.data(), v.size(), 1 };
 }
 
 template<typename T>

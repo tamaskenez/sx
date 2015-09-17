@@ -96,18 +96,38 @@ public:
     const T& operator[](indices_type offset) const;
 #endif
 
-    template <typename... Ts>
-    auto
-    operator()(Ts... v) const -> decltype(this->view()(v...))
-    {
-        return view()(v...);
-    }
-    template <typename... Ts>
-    auto
-    operator()(Ts... v) -> decltype(this->view()(v...))
-    {
-        return view()(v...);
-    }
+    //todo: probably this could be solved in a general way with some metaprogramming
+    //with variadic templates
+    //however I'm not sure a variadic template could handle
+    //the case where slice_bounds is initialized with {x, y} which has no
+    //type on its own
+    constexpr const_reference operator()(index_type x) const noexcept
+    { return view()(x); }
+    constexpr array_view<const T, 1> operator()(slice_bounds x) const noexcept
+    { return view()(x); }
+    constexpr const_reference operator()(index_type x, index_type y) const noexcept
+    { return view()(x, y); }
+    constexpr array_view<const T, 1> operator()(slice_bounds x, index_type y) const noexcept
+    { return view()(x, y); }
+    constexpr array_view<const T, 1> operator()(index_type x, slice_bounds y) const noexcept
+    { return view()(x, y); }
+    constexpr array_view<const T, 2> operator()(slice_bounds x, slice_bounds y) const noexcept
+    { return view()(x, y); }
+    constexpr reference operator()(index_type x) noexcept
+    { return view()(x); }
+    constexpr array_view<T, 1> operator()(slice_bounds x) noexcept
+    { return view()(x); }
+    constexpr reference operator()(index_type x, index_type y) noexcept
+    { return view()(x, y); }
+    constexpr array_view<T, 1> operator()(slice_bounds x, index_type y) noexcept
+    { return view()(x, y); }
+    constexpr array_view<T, 1> operator()(index_type x, slice_bounds y) noexcept
+    { return view()(x, y); }
+    constexpr array_view<T, 2> operator()(slice_bounds x, slice_bounds y) noexcept
+    { return view()(x, y); }
+
+
+    
     void reserve(const extents_type& e) {
                 size_type s = 1;
                 for(auto i:e) s *= i;
