@@ -164,7 +164,7 @@ namespace ranges
 				operator()(RngData && rngdata, RngIdcs && rngidcs) const
                 {
 					using it_t = take_at_iterator<range_iterator_t<RngData>, range_iterator_t<RngIdcs>>;
-                    using idcs_iterator_cat_t = typename range_iterator_t<RngIdcs>::iterator_category;
+                    //using idcs_iterator_cat_t = typename range_iterator_t<RngIdcs>::iterator_category;
                     return {
 						it_t(begin(rngdata), rngdata.size(), begin(rngidcs))
 						, it_t(begin(rngdata), rngdata.size(), end(rngidcs))

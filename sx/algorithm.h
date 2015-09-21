@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <cmath>
 
 #include "sx/abbrev.h"
 #include "range/range_traits.hpp"
@@ -157,6 +158,19 @@ namespace sx {
 		for(auto v: rng)
 			s += v;
 		return s;
+	}
+
+	template<typename Rng,
+        typename = std::enable_if_t<!std::is_fundamental<Rng>::value>>
+	void log(Rng& rng) {
+		for(auto& v: rng) v = std::log(v);
+	}
+
+	template<typename Rng,
+        typename = std::enable_if_t<!std::is_fundamental<Rng>::value>>
+	Rng log(Rng&& rng) {
+		log(rng);
+        return std::move(rng);
 	}
 
 	template<typename Rng>
