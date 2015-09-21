@@ -10,14 +10,14 @@
 // Project home: https://github.com/ericniebler/range-v3
 //
 
-#ifndef RANGES_V3_UTILITY_STATIC_CONST_HPP
-#define RANGES_V3_UTILITY_STATIC_CONST_HPP
+#ifndef RANGES_SX_UTILITY_STATIC_CONST_HPP
+#define RANGES_SX_UTILITY_STATIC_CONST_HPP
 
-#include <range/v3/range_fwd.hpp>
+#include <range/range_fwd.hpp>
 
 namespace ranges
 {
-    inline namespace v3
+    inline namespace sx
     {
         /// \ingroup group-utility
         template<typename T>
