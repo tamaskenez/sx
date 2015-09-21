@@ -2,8 +2,9 @@ How to declare view to const content:
 1. it's always const, there's no view to mutable content
 2. view<const T>
 3. const view<T>
+4. const_view<T>
 
-Shallow compare: how to compare views (if they refer the same memory)
+Shallow compare: how to compare views (to test if they refer the same memory)
 1. not possible
 2. operator==
 3. named function (e.g. is_same_view(view1, view2))

@@ -24,3 +24,8 @@ install(TARGETS sx EXPORT sx-targets
     ARCHIVE DESTINATION lib)
 install(EXPORT sx-targets FILE sx-config.cmake DESTINATION lib/cmake/sx)
 install(DIRECTORY sx DESTINATION include)
+
+if(SX_ENABLE_TESTING)
+    enable_testing()
+    add_subdirectory(test)
+endif()

@@ -16,9 +16,10 @@
 
 //#include <climits>
 //#include <utility>
-//#include <type_traits>
+#include <type_traits>
 //#include <meta/meta.hpp>
 //#include <range/v3/detail/config.hpp>
+#include <iterator>
 
 /// \defgroup group-utility Utility
 /// Utility classes
