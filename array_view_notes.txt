@@ -3,7 +3,7 @@
 N4512 rev 7
 N4494 rev 6
 N4346 rev 5
-N4177 rev 4
+N4177 rev 4 
 
 N4512 rev 7
 http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4512.html
@@ -81,4 +81,4 @@ dim type
 size_t, ptrdiff_t, size_t, -, -, size_t
 
 size():
-size(A,1), prod(size(A)), size(A), 
+size(A,1), prod(size(A)), size(A),

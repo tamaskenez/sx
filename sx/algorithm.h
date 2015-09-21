@@ -39,36 +39,43 @@ namespace sx {
 
     */
 	template<typename Range>
-	void unique_range(Range& rng) {
+	void unique(Range& rng) {
 		rng.erase(std::unique(BEGINEND(rng)), rng.end());
 	}
 
 	template<typename Range>
-	Range unique_range(Range&& rng) {
+	Range unique(Range&& rng) {
 		rng.erase(std::unique(BEGINEND(rng)), rng.end());
         return std::move(rng);
 	}
 
     template<typename Range>
-	void sort_unique_range(Range& rng) {
+	void sort_unique(Range& rng) {
 		std::sort(BEGINEND(rng));
-		unique_range(rng);
+		unique(rng);
 	}
 
 	template<typename Range>
-	Range sort_unique_range(Range&& rng) {
+	Range sort_unique(Range&& rng) {
 		std::sort(BEGINEND(rng));
-		return unique_range(std::move(rng));
+		return unique(std::move(rng));
 	}
 
 	template<typename Container, typename First, typename Last>
-	void insert_at_end(Container& c, First first, Last last) {
+	Container& insert_at_end(Container& c, First first, Last last) {
 		c.insert(c.end(), first, last);
 		return c;
 	}
 
+	template<typename Container, typename Rng>
+	Container& insert_at_end(Container& c, Rng&& rng) {
+		c.insert(c.end(), BEGINEND(rng));
+		return c;
+	}
+
+
     template<typename R1, typename R2, typename Cont>
-    void set_difference_range(R1&& r1, R2&& r2, Cont& cont) {
+    void set_difference(R1&& r1, R2&& r2, Cont& cont) {
         cont.resize(r1.size());
         cont.erase(
             std::set_difference(BEGINEND(r1), BEGINEND(r2), cont.begin())
@@ -76,19 +83,19 @@ namespace sx {
     }
 
     template<typename R1, typename R2, typename Cont>
-    Cont set_difference_range(R1&& r1, R2&& r2, Cont&& cont) {
-        set_difference_range(r1, r2, cont);
+    Cont set_difference(R1&& r1, R2&& r2, Cont&& cont) {
+        set_difference(r1, r2, cont);
         return std::move(cont);
     }
 
     template<typename R1, typename R2>
     std::vector<ranges::range_value_t<R1>>
-    set_difference_range(R1&& r1, R2&& r2) {
-        return set_difference_range(r1, r2, std::vector<ranges::range_value_t<R1>>());
+    set_difference(R1&& r1, R2&& r2) {
+        return set_difference(r1, r2, std::vector<ranges::range_value_t<R1>>());
     }
 
     template<typename R1, typename R2, typename Cont>
-    void set_intersection_range(R1&& r1, R2&& r2, Cont& cont) {
+    void set_intersection(R1&& r1, R2&& r2, Cont& cont) {
         cont.resize(r1.size());
         cont.erase(
             std::set_intersection(BEGINEND(r1), BEGINEND(r2), cont.begin())
@@ -96,15 +103,15 @@ namespace sx {
     }
 
     template<typename R1, typename R2, typename Cont>
-    Cont set_intersection_range(R1&& r1, R2&& r2, Cont&& cont) {
-        set_intersection_range(r1, r2, cont);
+    Cont set_intersection(R1&& r1, R2&& r2, Cont&& cont) {
+        set_intersection(r1, r2, cont);
         return std::move(cont);
     }
 
     template<typename R1, typename R2>
     std::vector<ranges::range_value_t<R1>>
-    set_intersection_range(R1&& r1, R2&& r2) {
-        return set_intersection_range(r1, r2, std::vector<ranges::range_value_t<R1>>());
+    set_intersection(R1&& r1, R2&& r2) {
+        return set_intersection(r1, r2, std::vector<ranges::range_value_t<R1>>());
     }
 
     template<typename X, typename Y>

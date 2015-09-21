@@ -3,8 +3,7 @@
 #include <vector>
 #include <numeric>
 #include "simple_test.hpp"
-
-using V = std::vector<int>;
+#include "v.h"
 
 struct S1 {
     V v;
@@ -23,9 +22,9 @@ typename V::const_iterator end(const S2& s) { return s.v.end(); }
 typename V::iterator begin(S2& s) { return s.v.begin(); }
 typename V::iterator end(S2& s) { return s.v.end(); }
 
-
 int main(int argc, const char* argv[]) {
 
+    // test BEGINEND
     S1 s1, s2;
     const int N = 10;
 
