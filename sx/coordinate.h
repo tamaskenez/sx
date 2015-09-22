@@ -3,7 +3,7 @@
 
 #include <assert.h>
 #include <iterator>
-#include <type_traits>
+#include "sx/type_traits.h"
 #include <array>
 
 #ifdef _MSC_VER

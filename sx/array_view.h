@@ -2,7 +2,7 @@
 #define _IMPL_ARRAY_VIEW_H_ 1
 
 #include <stdexcept>
-#include <type_traits>
+#include "sx/type_traits.h"
 #include <utility>
 #include <numeric>
 #include <cmath>

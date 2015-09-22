@@ -2,7 +2,7 @@
 #define RANGE_INCLUDED_207920893423
 
 #include <cassert>
-#include <type_traits>
+#include "sx/type_traits.h"
 #include <iterator>
 
 namespace sx {

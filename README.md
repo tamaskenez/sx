@@ -1,4 +1,4 @@
-# sx
+# sx [![Build Status](https://travis-ci.org/tamaskenez/sx.svg?branch=master)](https://travis-ci.org/tamaskenez/sx)
 
 C++ utilities, includes components like:
 

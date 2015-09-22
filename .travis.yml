@@ -1,0 +1,45 @@
+sudo: false
+language: cpp
+compiler:
+  - gcc
+  - clang
+
+addons:
+  apt:
+    sources:
+      - llvm-toolchain-precise-3.6
+      - ubuntu-toolchain-r-test
+    packages:
+      - clang-3.6
+      - gcc-4.9
+      - g++-4.9
+
+install:
+- if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
+- if [ "$CXX" = "clang++" ]; then export CXX="clang++-3.6" CC="clang-3.6"; fi
+- echo $CXX
+
+before_script:
+  - which $CXX
+  - cmake -H. -Bb -DCMAKE_INSTALL_PREFIX=$PWD/o -DCMAKE_BUILD_TYPE=Debug -DSX_ENABLE_TESTING=1 -DCMAKE_CXX_STANDARD=11
+  - cmake --build b --target install
+  - cmake -H. -Bbr -DCMAKE_INSTALL_PREFIX=$PWD/o -DCMAKE_BUILD_TYPE=Release -DSX_ENABLE_TESTING=1 -DCMAKE_CXX_STANDARD=11
+  - cmake --build br --target install
+  - cmake -H. -Bb14 -DCMAKE_INSTALL_PREFIX=$PWD/o14 -DCMAKE_BUILD_TYPE=Debug -DSX_ENABLE_TESTING=1 -DCMAKE_CXX_STANDARD=14
+  - cmake --build b14 --target install
+  - cmake -H. -Bbr14 -DCMAKE_INSTALL_PREFIX=$PWD/o14 -DCMAKE_BUILD_TYPE=Release -DSX_ENABLE_TESTING=1 -DCMAKE_CXX_STANDARD=14
+  - cmake --build br14 --target install
+
+script:
+  - cd b
+  - ctest
+  - cd ../br
+  - ctest
+  - cd ../b14
+  - ctest
+  - cd ../br14
+  - ctest
+
+
+notifications:
+  email: false
