@@ -525,7 +525,8 @@ struct bounds_iterator
         for (int i = Rank; i-- > 0;) {
             if (++curr[i] < bnd[i]) {
                 return *this;
-            } else {
+            }
+            else {
                 curr[i] = 0;
             }
         }
@@ -549,7 +550,8 @@ struct bounds_iterator
         for (int i = Rank; i-- > 0;) {
             if (curr[i]-- > 0) {
                 return *this;
-            } else {
+            }
+            else {
                 curr[i] = bnd[i] - 1;
             }
         }
@@ -675,7 +677,8 @@ private:
                 res += (idx[i] - 1) * multiplier;
                 multiplier *= bnd[i];
             }
-        } else {
+        }
+        else {
             for (int i = Rank; i-- > 0;) {
                 res += idx[i] * multiplier;
                 multiplier *= bnd[i];

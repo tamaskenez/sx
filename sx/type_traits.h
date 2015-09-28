@@ -10,17 +10,20 @@
 
 namespace std {
 
-	template<bool B, typename T = void>
-	using enable_if_t = typename std::enable_if<B, T>::type;
-    
-    template< class T >
-    using remove_cv_t       = typename remove_cv<T>::type;
+template <bool B, typename T = void>
+using enable_if_t = typename std::enable_if<B, T>::type;
 
-    template< class T >
-    using remove_const_t    = typename remove_const<T>::type;
+template <class T>
+using remove_cv_t = typename remove_cv<T>::type;
 
-    template< class T >
-    using remove_volatile_t = typename remove_volatile<T>::type;
+template <class T>
+using remove_const_t = typename remove_const<T>::type;
+
+template <class T>
+using remove_volatile_t = typename remove_volatile<T>::type;
+
+template <class T>
+using remove_reference_t = typename remove_reference<T>::type;
 }
 
 #endif

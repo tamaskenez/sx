@@ -65,8 +65,7 @@ template <typename T, typename U, rank_type Rank>
 multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
 {
     using ResultArray = multi_array<T, Rank>;
-    ResultArray R(X.extents(), X.strides().front() > X.strides().back() ?
-        array_layout::c_order : array_layout::fortran_order);
+    ResultArray R(X.extents(), X.strides().front() > X.strides().back() ? array_layout::c_order : array_layout::fortran_order);
 
     std::vector<T> w(X.extents(dim));
 
@@ -98,15 +97,16 @@ multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
 }
 
 // return indices of maximum values along a dimension
-template<typename T, rank_type Rank,
-    typename = std::enable_if_t<(Rank > 1)>>
+template <typename T, rank_type Rank,
+    typename = std::enable_if_t<(Rank > 1)> >
 multi_array<std::remove_const_t<T>, Rank - 1>
-indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout) {
+indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout)
+{
 
     auto extents = X.extents();
-    std::array<extent_type, Rank-1> extents_dim;
+    std::array<extent_type, Rank - 1> extents_dim;
     std::rotate(extents.begin() + dim, extents.begin() + dim + 1, extents.end());
-    std::copy_n(extents.begin(), Rank-1, extents_dim.begin());
+    std::copy_n(extents.begin(), Rank - 1, extents_dim.begin());
 
     multi_array<std::remove_const_t<T>, Rank - 1> R(extents_dim, layout);
 
@@ -123,8 +123,8 @@ indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout) {
         auto it_rot(it);
         std::rotate(it_rot.begin() + dim, it_rot.begin() + dim + 1, it_rot.end());
         //todo this could be done without a copy with a reinterpret_cast
-        std::array<extent_type, Rank-1> it_dim;
-        std::copy_n(it_rot.begin(), Rank-1, it_dim.begin());
+        std::array<extent_type, Rank - 1> it_dim;
+        std::copy_n(it_rot.begin(), Rank - 1, it_dim.begin());
         R[it_dim] = it_max - xv.begin();
 
         if (!next_variation(lower_bounds.begin(), it.begin(), e.begin(), Rank))
@@ -133,17 +133,16 @@ indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout) {
     return R;
 }
 
-template<typename T, rank_type Rank,
-    typename = std::enable_if_t<(Rank > 1)>>
+template <typename T, rank_type Rank,
+    typename = std::enable_if_t<(Rank > 1)> >
 multi_array<std::remove_const_t<T>, Rank - 1>
-indmax_along(array_view<T, Rank> X, rank_type dim) {
+indmax_along(array_view<T, Rank> X, rank_type dim)
+{
     return indmax_along(X, dim,
         X.strides().front() > X.strides().back()
-        ? array_layout::c_order
-        : array_layout::fortran_order
-    );
+            ? array_layout::c_order
+            : array_layout::fortran_order);
 }
-
 }
 
 #endif

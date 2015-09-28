@@ -34,7 +34,7 @@ struct array_layout_t {
 
 namespace array_layout {
     static constexpr array_layout_t c_order{ 0 };
-    static constexpr array_layout_t fortran_order{ 0 };
+    static constexpr array_layout_t fortran_order{ 1 };
 };
 
 namespace details {
@@ -74,8 +74,7 @@ namespace details {
 
     // Make bounds from an array type extents.
     template <typename T>
-    _CONSTEXPR auto
-    make_bounds() _NOEXCEPT
+    _CONSTEXPR auto make_bounds() _NOEXCEPT
         -> decltype(make_bounds_inner<T>(make_seq_t<std::rank<T>::value>{}))
     {
         return make_bounds_inner<T>(make_seq_t<std::rank<T>::value>{});
@@ -283,7 +282,7 @@ struct length_fn {
     {
         return length_value<I>(i);
     }
-    template<typename Rng>
+    template <typename Rng>
     ranges::range_size_t<Rng> operator()(Rng&& rng) const { return rng.size(); }
 };
 
@@ -388,7 +387,7 @@ public:
 protected:
     template <typename I>
     constexpr index_or_fromend(I value, kind_t k)
-    : smart_index_base(value, k)
+        : smart_index_base(value, k)
     {
     }
 };
@@ -490,7 +489,8 @@ public:
             srd[Rank - 1] = 1;
             for (int i = (int)Rank - 2; i >= 0; --i)
                 srd[i] = srd[i + 1] * bnd[i + 1];
-        } else {
+        }
+        else {
             assert(layout == array_layout::fortran_order);
             srd[0] = 1;
             for (rank_type i = 1; i < Rank; ++i)
@@ -564,12 +564,9 @@ public:
     }
 
     template <typename Rng,
-        typename = std::enable_if_t<
-            !std::is_const<T>::value
+        typename = std::enable_if_t<!std::is_const<T>::value
             && std::is_convertible<ranges::range_value_t<Rng>, T>::value
-            && Rank == 1
-        >
-    >
+            && Rank == 1> >
     const array_view&
     operator<<=(Rng&& x) const
     {
@@ -684,14 +681,14 @@ private:
         }
     }
     // helper functions
-    template<typename Rng>
+    template <typename Rng>
     void copy_from_range_to_1d(Rng&& x) const
     {
-        static_assert(Rank==1, "");
+        static_assert(Rank == 1, "");
         assert(extents(0) == ranges::end(x) - ranges::begin(x));
         auto it = ranges::begin(x);
-//        auto e = ranges::end(x);
-        for(index_type i = 0; i < extents(0); ++i, ++it)
+        //        auto e = ranges::end(x);
+        for (index_type i = 0; i < extents(0); ++i, ++it)
             (*this)[i] = *it;
     }
     void prepare_iterator(iterator& it) const
@@ -703,7 +700,7 @@ private:
             make_random_access_iterator_pair(strides.begin(), it.dim_permut.begin()),
             make_random_access_iterator_pair(strides.end(), it.dim_permut.end()));
         extent_type s = 1;
-        for(int i = 0; i < Rank; ++i) {
+        for (int i = 0; i < Rank; ++i) {
             auto dpi = it.dim_permut[i];
             s *= extents(dpi);
             it.cumprod_extents[dpi] = s;
@@ -720,14 +717,14 @@ public:
         friend class array_view;
 
     private:
-        array_view const * that = nullptr;
+        array_view const* that = nullptr;
         indices_type idx;
         std::array<int, Rank> dim_permut; //strides[dim_permut[i]] is sorted
         std::array<extent_type, Rank> cumprod_extents; //cumprod in the order of dim_permut
 
-        using iterator_base =
-            std::iterator<std::random_access_iterator_tag,
-              value_type, std::ptrdiff_t, pointer, reference>;
+        using iterator_base = std::iterator<std::random_access_iterator_tag,
+            value_type, std::ptrdiff_t, pointer, reference>;
+
     public:
         using this_type = iterator;
         using iterator_category = typename iterator_base::iterator_category;
@@ -737,7 +734,8 @@ public:
         using reference = typename iterator_base::reference;
 
         // construction, assignment
-        iterator() {
+        iterator()
+        {
             idx.fill(0);
             dim_permut.fill(0);
             cumprod_extents.fill(0);
@@ -748,9 +746,10 @@ public:
         // observers
         constexpr reference operator*() const noexcept { return (*that)[idx]; }
         constexpr pointer operator->() const noexcept { return &(operator*()); }
-        reference operator[](difference_type n) const {
+        reference operator[](difference_type n) const
+        {
             auto new_lin_idx = (difference_type)to_linear_idx() + n;
-            assert(0 <= new_lin_idx && new_lin_idx <= cumprod_extents[dim_permut[Rank-1]]);
+            assert(0 <= new_lin_idx && new_lin_idx <= cumprod_extents[dim_permut[Rank - 1]]);
             indices_type new_idx;
             from_linear_idx(n, new_idx);
             return that->operator[](new_idx);
@@ -758,7 +757,8 @@ public:
         constexpr const indices_type& indices() const noexcept { return idx; }
 
         // modifiers
-        this_type& operator++() {
+        this_type& operator++()
+        {
             rank_type i = 0;
             for (; i < Rank; ++i) {
                 int j = dim_permut[i];
@@ -768,8 +768,14 @@ public:
             }
             return *this;
         }
-        this_type operator++(int) { this_type x(*this); ++(*this); return x; }
-        this_type& operator--() {
+        this_type operator++(int)
+        {
+            this_type x(*this);
+            ++(*this);
+            return x;
+        }
+        this_type& operator--()
+        {
             rank_type i = 0;
             for (; i < Rank; ++i) {
                 int j = dim_permut[i];
@@ -779,8 +785,14 @@ public:
             }
             return *this;
         }
-        this_type operator--(int) const { this_type x(*this); --(*this); return x; }
-        void swap(this_type& y) {
+        this_type operator--(int) const
+        {
+            this_type x(*this);
+            --(*this);
+            return x;
+        }
+        void swap(this_type& y)
+        {
             using std::swap;
             swap(that, y.that);
             swap(idx, y.idx);
@@ -789,25 +801,29 @@ public:
         }
         //like x % y but the handling of negative x is such that
         //the cyclic pattern of the remainder continues
-        static inline extent_type cyclic_remainder(difference_type x, extent_type y) {
-            assert(y>0);
-            if(x >= 0) return x % y;
+        static inline extent_type cyclic_remainder(difference_type x, extent_type y)
+        {
+            assert(y > 0);
+            if (x >= 0)
+                return x % y;
             return (y - (-x % y)) % y;
         }
-        index_type to_linear_idx() const {
+        index_type to_linear_idx() const
+        {
             index_type r = 0;
             extent_type cextj_prev = 1;
-            for(rank_type i = 0; i < Rank; ++i) {
+            for (rank_type i = 0; i < Rank; ++i) {
                 auto j = dim_permut[i];
                 r += cextj_prev * idx[j];
                 cextj_prev = cumprod_extents[j];
             }
             return r;
         }
-        void from_linear_idx(index_type n, indices_type& result) const {
-            assert(0 <= n && n <= cumprod_extents[dim_permut[Rank-1]]);
+        void from_linear_idx(index_type n, indices_type& result) const
+        {
+            assert(0 <= n && n <= cumprod_extents[dim_permut[Rank - 1]]);
             extent_type cextj_prev = 1;
-            for(rank_type i = 0; n != 0 && i < Rank; ++i) {
+            for (rank_type i = 0; n != 0 && i < Rank; ++i) {
                 auto j = dim_permut[i];
                 const extent_type cextj = cumprod_extents[j];
                 result[j] = cyclic_remainder(n, cextj) / cextj_prev;
@@ -815,40 +831,60 @@ public:
                 cextj_prev = cextj;
             }
         }
-        this_type& operator+=(difference_type n) {
+        this_type& operator+=(difference_type n)
+        {
             auto new_lin_idx = (difference_type)to_linear_idx() + n;
-            assert(0 <= new_lin_idx && new_lin_idx <= cumprod_extents[dim_permut[Rank-1]]);
+            assert(0 <= new_lin_idx && new_lin_idx <= cumprod_extents[dim_permut[Rank - 1]]);
             from_linear_idx(new_lin_idx, idx);
             return *this;
         }
-        this_type& operator-=(difference_type y) { (*this) += (-y); return *this; }
+        this_type& operator-=(difference_type y)
+        {
+            (*this) += (-y);
+            return *this;
+        }
 
         // comparison
-        bool operator==(const this_type& x) const {
+        bool operator==(const this_type& x) const
+        {
             assert(that == x.that);
             return that == x.that && idx == x.idx;
         }
-        bool operator!=(const this_type& y) const { return !(*this==y); }
-        bool operator<(const this_type& x) const {
+        bool operator!=(const this_type& y) const { return !(*this == y); }
+        bool operator<(const this_type& x) const
+        {
             assert(that == x.that);
             assert(dim_permut == x.dim_permut);
-            for(int i = Rank - 1; i >= 0; --i) {
+            for (int i = Rank - 1; i >= 0; --i) {
                 auto dpi = dim_permut[i];
                 auto rhs = idx[dpi];
                 auto lhs = x.idx[dpi];
-                if(rhs < lhs) return true;
-                if(rhs > lhs) return false;
+                if (rhs < lhs)
+                    return true;
+                if (rhs > lhs)
+                    return false;
             }
             return false; //they're equal
         }
         bool operator>(const this_type& y) const { return y < *this; }
         bool operator>=(const this_type& y) const { return !(*this < y); }
-        bool operator<=(const this_type& y) const { return !(*this > y); } 
+        bool operator<=(const this_type& y) const { return !(*this > y); }
 
         //operations
-        this_type operator+(difference_type y) const { this_type x(*this); x += y; return x; }
-        this_type operator-(difference_type y) const { this_type x(*this); x -= y; return x; }
-        difference_type operator-(const this_type& y) {
+        this_type operator+(difference_type y) const
+        {
+            this_type x(*this);
+            x += y;
+            return x;
+        }
+        this_type operator-(difference_type y) const
+        {
+            this_type x(*this);
+            x -= y;
+            return x;
+        }
+        difference_type operator-(const this_type& y)
+        {
             return static_cast<difference_type>(to_linear_idx()) - static_cast<difference_type>(y.to_linear_idx());
         }
     };
@@ -897,43 +933,43 @@ constexpr array_view<const T> make_array_view(const std::vector<T>& v) noexcept
     return { v.data(), v.size(), 1 };
 }
 
-template<typename T>
+template <typename T>
 using matrix_view = array_view<T, 2>;
 
-
-inline std::string mat2str(double d) {
-    if(std::isnan(d))
+inline std::string mat2str(double d)
+{
+    if (std::isnan(d))
         return "NaN";
-    if(std::isinf(d))
+    if (std::isinf(d))
         return d < 0 ? "-Inf" : "Inf";
     int i = 0;
     double d2 = d;
     const double kEps = 1e-15;
-    for(; i <= 15; ++i, d2 *= 10.0) {
-        if(fabs(round(d2)-d2) < kEps) break;
+    for (; i <= 15; ++i, d2 *= 10.0) {
+        if (fabs(round(d2) - d2) < kEps)
+            break;
     }
     char buf[100];
     sprintf(buf, "%.*f", i, d);
     return buf;
 }
 
-inline std::string mat2str(int i) {
+inline std::string mat2str(int i)
+{
     char buf[100];
     sprintf(buf, "%d", i);
     return buf;
 }
 
-template<typename T,
-    typename = std::enable_if_t<
-        std::is_arithmetic<T>::value
-    >
->
-std::string mat2str(array_view<T, 1> X) {
+template <typename T,
+    typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+std::string mat2str(array_view<T, 1> X)
+{
     std::string result;
     result = "[";
     bool first = true;
-    for(auto x: X) {
-        if(!first)
+    for (auto x : X) {
+        if (!first)
             result += " ";
         else
             first = false;
@@ -943,23 +979,21 @@ std::string mat2str(array_view<T, 1> X) {
     return result;
 }
 
-template<typename T,
-    typename = std::enable_if_t<
-        std::is_arithmetic<T>::value
-    >
->
-std::string mat2str(array_view<T, 2> x) {
+template <typename T,
+    typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+std::string mat2str(array_view<T, 2> x)
+{
     std::string result;
     result = "[";
     bool first_row = true;
-    for(index_type i = 0; i < x.extents(0); ++i) {
-        if(!first_row)
+    for (index_type i = 0; i < x.extents(0); ++i) {
+        if (!first_row)
             result += ";";
         else
             first_row = false;
         bool first_col = true;
-        for(index_type j = 0; j < x.extents(1); ++j) {
-            if(!first_col)
+        for (index_type j = 0; j < x.extents(1); ++j) {
+            if (!first_col)
                 result += " ";
             else
                 first_col = false;
@@ -970,15 +1004,12 @@ std::string mat2str(array_view<T, 2> x) {
     return result;
 }
 
-template<typename T,
-    typename = std::enable_if_t<
-        std::is_arithmetic<T>::value
-    >
->
-std::string mat2str(const std::vector<T>& x) {
+template <typename T,
+    typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+std::string mat2str(const std::vector<T>& x)
+{
     return mat2str(make_array_view(x));
 }
-
 
 } //namespace sx
 
