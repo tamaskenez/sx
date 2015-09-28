@@ -17,9 +17,9 @@ void f2(S&& s)
 void f(S&& s)
 {
     using Q = decltype(s);
-    using W = S&&;
-    static_assert(std::is_same<Q, W>::value, "");
-    f2((Q)(s));
+    static_assert(std::is_same<Q, S&&>::value, ""); //proves that `s` is indeed `S&&`
+    //f2(s); //compiler error: no matching f2()
+    f2((Q)s); //casting `s` to *its own type* works
 }
 
 int main()
@@ -27,10 +27,10 @@ int main()
 
     // unique
     {
-        const V v1 = { 1, 2, 3, 3, 4, 4, 5 };
-        const V v2 = { 5, 3, 4, 4, 2, 3, 1 };
-        V vt = { 1, 2, 3, 4, 5 };
-        V w;
+        const VI v1 = { 1, 2, 3, 3, 4, 4, 5 };
+        const VI v2 = { 5, 3, 4, 4, 2, 3, 1 };
+        VI vt = { 1, 2, 3, 4, 5 };
+        VI w;
         w = v1;
         sx::unique(w);
         CHECK(w == vt);
@@ -50,11 +50,11 @@ int main()
 
     // insert_at_end
     {
-        V v1 = { 1, 2, 3 };
-        const V v2 = { 4, 5, 6 };
-        const V vt = { 1, 2, 3, 4, 5, 6 };
+        VI v1 = { 1, 2, 3 };
+        const VI v2 = { 4, 5, 6 };
+        const VI vt = { 1, 2, 3, 4, 5, 6 };
 
-        V v;
+        VI v;
         v = v1;
         sx::insert_at_end(v, v2.begin(), v2.end());
         CHECK(v == vt);
@@ -66,14 +66,14 @@ int main()
 
     // set_difference
     {
-        const V v1 = { 1, 2, 3, 4, 5 };
-        const V v2 = { 2, 4, 5 };
-        const V vt = { 1, 3 };
-        V c(v1.size());
+        const VI v1 = { 1, 2, 3, 4, 5 };
+        const VI v2 = { 2, 4, 5 };
+        const VI vt = { 1, 3 };
+        VI c(v1.size());
         sx::set_difference(v1, v2, c);
         CHECK(c == vt);
 
-        c = sx::set_difference(v1, v2, V(v1.size()));
+        c = sx::set_difference(v1, v2, VI(v1.size()));
         CHECK(c == vt);
 
         auto d = sx::set_difference(v1, v2);
@@ -83,15 +83,15 @@ int main()
 
     // set_intersection
     {
-        const V v1 = { 1, 2, 4, 5 };
-        const V v2 = { 2, 3, 5 };
-        const V vt = { 2, 5 };
-        V c(v1.size());
+        const VI v1 = { 1, 2, 4, 5 };
+        const VI v2 = { 2, 3, 5 };
+        const VI vt = { 2, 5 };
+        VI c(v1.size());
         sx::set_intersection(v1, v2, c);
         CHECK(c == vt);
 
         c.assign(10, 10);
-        c = sx::set_intersection(v1, v2, V(v1.size()));
+        c = sx::set_intersection(v1, v2, VI(v1.size()));
         CHECK(c == vt);
 
         auto d = sx::set_intersection(v1, v2);
@@ -101,9 +101,9 @@ int main()
 
     // scalar_rdiv_range
     {
-        const V v1 = { 3, 4, 6 };
-        const V vt = { 4, 3, 2 };
-        V v2;
+        const VI v1 = { 3, 4, 6 };
+        const VI vt = { 4, 3, 2 };
+        VI v2;
         v2 = v1;
         CHECK(vt == sx::scalar_rdiv_range(std::move(v2), 12));
 
@@ -114,9 +114,9 @@ int main()
 
     // range_div_scalar
     {
-        const V v1 = { 3, 6, 9 };
-        const V vt = { 1, 2, 3 };
-        V v2;
+        const VI v1 = { 3, 6, 9 };
+        const VI vt = { 1, 2, 3 };
+        VI v2;
         v2 = v1;
         CHECK(vt == sx::range_div_scalar(std::move(v2), 3));
 
@@ -127,9 +127,9 @@ int main()
 
     // range_mul_scalar
     {
-        const V v1 = { 3, 6, 9 };
-        const V vt = { 9, 18, 27 };
-        V v2;
+        const VI v1 = { 3, 6, 9 };
+        const VI vt = { 9, 18, 27 };
+        VI v2;
         v2 = v1;
         CHECK(vt == sx::range_mul_scalar(std::move(v2), 3));
 
@@ -139,8 +139,8 @@ int main()
     }
 
     {
-        const V a = { 10, 20, 30, 40, 50, 60, 70, 80, 90 };
-        const V v = { 35, 10, 5, 100, 90, 65, 70, 90 };
+        const VI a = { 10, 20, 30, 40, 50, 60, 70, 80, 90 };
+        const VI v = { 35, 10, 5, 100, 90, 65, 70, 90 };
 
         auto r = sx::searchsorted<char>(a, v);
 
@@ -156,8 +156,22 @@ int main()
     }
 
     {
-        V a = { 10, 4, 5, 23, 54 };
+        const VI a = { 10, 4, 5, 23, 54 };
         CHECK(std::accumulate(BEGINEND(a), 0) == sx::sum(a));
     }
+    {
+        const VD a = { 10, 4, 5, 23, 54 };
+        VD vt;
+        for(auto d:a) vt.push_back(log(d));
+        VD b;
+        b = a;
+        sx::log(b);
+        VD c;
+        c = a;
+        auto d = sx::log(std::move(c));
+        CHECK(vt == b);
+        CHECK(vt == d);
+    }
+    printf("finished.\n"); //trigger xcode console
     return test_result();
 }
