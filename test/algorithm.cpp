@@ -157,12 +157,16 @@ int main()
 
     {
         const VI a = { 10, 4, 5, 23, 54 };
+        auto ds = sx::sum<double>(a);
+        static_assert(std::is_same<decltype(ds), double>::value, "");
         CHECK(std::accumulate(BEGINEND(a), 0) == sx::sum(a));
+        CHECK(std::accumulate(BEGINEND(a), 0) == ds);
     }
     {
         const VD a = { 10, 4, 5, 23, 54 };
         VD vt;
-        for(auto d:a) vt.push_back(log(d));
+        for (auto d : a)
+            vt.push_back(log(d));
         VD b;
         b = a;
         sx::log(b);
@@ -172,6 +176,44 @@ int main()
         CHECK(vt == b);
         CHECK(vt == d);
     }
+    {
+        const VI a = { 10, 4, 5, 23, 54 };
+        auto ds = sx::mean<double>(a);
+        static_assert(std::is_same<decltype(ds), double>::value, "");
+        CHECK((std::accumulate(BEGINEND(a), 0) / a.size()) == sx::mean(a));
+        CHECK((std::accumulate(BEGINEND(a), 0) / (double)a.size()) == ds);
+    }
+    {
+        const int x = 10;
+        const int z = 12;
+        for (int y = x - 1; y <= z + 1; ++y) {
+            const bool qq = x <= y && y <= z;
+            const bool sq = x < y && y <= z;
+            const bool ss = x < y && y < z;
+            CHECK(sx::leq_and_leq(x, y, z) == qq);
+            CHECK(sx::less_and_leq(x, y, z) == sq);
+            CHECK(sx::less_and_less(x, y, z) == ss);
+        }
+    }
+    {
+        VI a(1), b;
+        CHECK(sx::isempty(a) == a.empty());
+        CHECK(sx::isempty(b) == b.empty());
+    }
+
+    {
+        const VI v1 = { 6, 10, 3, 2, 3, 8, 7, 4, 1, 9,
+            3, 1, 3, 4, 6, 8, 10, 7, 2, 10 };
+        const VI vt = { 0, 2, 2, 4, 2, 0, 2, 2, 2, 1, 3 };
+        auto va = sx::bincount(std::vector<int>(100), v1);
+        VI v2(50);
+        sx::bincount(v2, v1);
+        auto v3 = sx::bincount<int>(v1);
+        CHECK(va == vt);
+        CHECK(v2 == vt);
+        CHECK(v3 == vt);
+    }
+
     printf("finished.\n"); //trigger xcode console
     return test_result();
 }

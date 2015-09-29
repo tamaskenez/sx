@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <cassert>
 
 #include "sx/abbrev.h"
 #include "range/range_traits.hpp"
@@ -82,8 +83,8 @@ Container& insert_at_end(Container& c, Rng&& rng)
 template <typename R1, typename R2, typename Cont>
 void set_difference(R1&& r1, R2&& r2, Cont& cont)
 {
-    cont.erase(
-        std::set_difference(BEGINEND(r1), BEGINEND(r2), cont.begin()), cont.end());
+    cont.erase(std::set_difference(BEGINEND(r1), BEGINEND(r2), cont.begin()),
+        cont.end());
 }
 
 template <typename R1, typename R2, typename Cont>
@@ -94,17 +95,17 @@ Cont set_difference(R1&& r1, R2&& r2, Cont&& cont)
 }
 
 template <typename R1, typename R2>
-std::vector<ranges::range_value_t<R1> >
-set_difference(R1&& r1, R2&& r2)
+std::vector<ranges::range_value_t<R1> > set_difference(R1&& r1, R2&& r2)
 {
-    return set_difference(r1, r2, std::vector<ranges::range_value_t<R1> >(r1.size()));
+    return set_difference(r1, r2,
+        std::vector<ranges::range_value_t<R1> >(r1.size()));
 }
 
 template <typename R1, typename R2, typename Cont>
 void set_intersection(R1&& r1, R2&& r2, Cont& cont)
 {
-    cont.erase(
-        std::set_intersection(BEGINEND(r1), BEGINEND(r2), cont.begin()), cont.end());
+    cont.erase(std::set_intersection(BEGINEND(r1), BEGINEND(r2), cont.begin()),
+        cont.end());
 }
 
 template <typename R1, typename R2, typename Cont>
@@ -115,10 +116,10 @@ Cont set_intersection(R1&& r1, R2&& r2, Cont&& cont)
 }
 
 template <typename R1, typename R2>
-std::vector<ranges::range_value_t<R1> >
-set_intersection(R1&& r1, R2&& r2)
+std::vector<ranges::range_value_t<R1> > set_intersection(R1&& r1, R2&& r2)
 {
-    return set_intersection(r1, r2, std::vector<ranges::range_value_t<R1> >(r2.size()));
+    return set_intersection(r1, r2,
+        std::vector<ranges::range_value_t<R1> >(r2.size()));
 }
 
 // return x \ y, that is y / x
@@ -172,8 +173,8 @@ void range_mul_scalar(X& x, const Y& y)
         xi *= y;
 }
 
-//like numpy searchsorted
-//it's like a vectorized lower_bound returning indices instead of iterators
+// like numpy searchsorted
+// it's like a vectorized lower_bound returning indices instead of iterators
 template <typename SizeT, typename RangeA, typename RangeV>
 std::vector<SizeT> searchsorted(RangeA&& a, RangeV&& v)
 {
@@ -193,6 +194,12 @@ T sum(Rng&& rng)
     return s;
 }
 
+template <typename Rng>
+ranges::range_value_t<Rng> sum(Rng&& rng)
+{
+    return sum<ranges::range_value_t<Rng>, Rng>(rng);
+}
+
 template <typename Rng,
     typename = std::enable_if_t<!std::is_fundamental<Rng>::value> >
 void log(Rng& rng)
@@ -207,12 +214,6 @@ Rng log(Rng&& rng)
 {
     log(rng);
     return std::move(rng);
-}
-
-template <typename Rng>
-ranges::range_value_t<Rng> sum(Rng&& rng)
-{
-    return sum<ranges::range_value_t<Rng>, Rng>(rng);
 }
 
 template <typename T, typename Rng>
@@ -253,9 +254,9 @@ bool isempty(Rng&& rng) { return rng.empty(); }
 // bincount(<lvalue-for-result>, range) -> void
 // bincount<T>(range) -> std::vector<T>
 // works like numpy.bincount
-template <typename Result, typename Rng,
+template <typename ResultType, typename Rng,
     typename = std::enable_if_t<std::is_integral<ranges::range_value_t<Rng> >::value> >
-void bincount(Result& result, Rng&& rng)
+void bincount(std::vector<ResultType>& result, Rng&& rng)
 {
     if (rng.empty())
         result.clear();
@@ -268,9 +269,9 @@ void bincount(Result& result, Rng&& rng)
     }
 }
 
-template <typename Result, typename Rng,
+template <typename ResultType, typename Rng,
     typename = std::enable_if_t<std::is_integral<ranges::range_value_t<Rng> >::value> >
-Result bincount(Result&& result, Rng&& rng)
+std::vector<ResultType> bincount(std::vector<ResultType>&& result, Rng&& rng)
 {
     bincount(result, rng);
     return std::move(result);
