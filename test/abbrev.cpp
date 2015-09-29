@@ -6,21 +6,21 @@
 #include "v.h"
 
 struct S1 {
-    V v;
-    typename V::const_iterator begin() const { return v.begin(); }
-    typename V::const_iterator end() const { return v.end(); }
-    typename V::iterator begin() { return v.begin(); }
-    typename V::iterator end() { return v.end(); }
+    VI v;
+    typename VI::const_iterator begin() const { return v.begin(); }
+    typename VI::const_iterator end() const { return v.end(); }
+    typename VI::iterator begin() { return v.begin(); }
+    typename VI::iterator end() { return v.end(); }
 };
 
 struct S2 {
-    V v;
+    VI v;
 };
 
-typename V::const_iterator begin(const S2& s) { return s.v.begin(); }
-typename V::const_iterator end(const S2& s) { return s.v.end(); }
-typename V::iterator begin(S2& s) { return s.v.begin(); }
-typename V::iterator end(S2& s) { return s.v.end(); }
+typename VI::const_iterator begin(const S2& s) { return s.v.begin(); }
+typename VI::const_iterator end(const S2& s) { return s.v.end(); }
+typename VI::iterator begin(S2& s) { return s.v.begin(); }
+typename VI::iterator end(S2& s) { return s.v.end(); }
 
 int main(int argc, const char* argv[])
 {
