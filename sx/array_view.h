@@ -11,6 +11,7 @@
 #include "range/range_traits.hpp"
 #include "sx/coordinate.h"
 #include "sx/random_access_iterator_pair.h"
+#include "sx/array_par.h"
 
 namespace sx {
 
@@ -145,17 +146,6 @@ namespace details {
     using slice_return_type_t =
         typename slice_return_type<ViewType, ValueType, Rank>::type;
 
-    template <typename T, typename H>
-    constexpr void copy_head_and_advance(T* b, H h) noexcept
-    {
-        *b = h;
-    }
-    template <typename T, typename H, typename... Tail>
-    constexpr void copy_head_and_advance(T* b, H h, Tail... tail) noexcept
-    {
-        *b = h;
-        copy_head_and_advance(b + 1, tail...);
-    }
 
     template <int N, typename T, typename... Ts>
     struct all_integrals_helper {
@@ -173,52 +163,10 @@ namespace details {
         static constexpr bool value = all_integrals_helper<sizeof...(Ts) + 1, int, Ts...>::value;
     };
 
-    // like std::array but allows more constructors,
-    // default ctor initializes to zero
-    template <typename T, rank_type Rank>
-    struct arraylike
-        : public std::array<T, Rank> {
-        using base_type = std::array<T, Rank>;
-        using typename base_type::value_type;
-
-        constexpr arraylike() noexcept
-        {
-            this->fill(0);
-        }
-        constexpr arraylike(const arraylike&) noexcept = default;
-        template <typename U>
-        constexpr arraylike(const std::array<U, Rank>& x) noexcept
-            : base_type(x)
-        {
-        }
-        constexpr arraylike& operator=(const arraylike&) noexcept = default;
-        constexpr arraylike& operator=(const base_type& x) noexcept
-        {
-            base_type::operator=(x);
-            return *this;
-        }
-
-        constexpr arraylike(value_type v) noexcept
-        {
-            static_assert(Rank == 1, "Single-value constructor can be used only if Rank == 1");
-            (*this)[0] = v;
-        }
-
-        template <typename... Ints, typename = std::enable_if_t<sizeof...(Ints) == Rank
-                                        && all_integrals<Ints...>::value> >
-        constexpr arraylike(Ints... ints) noexcept
-        {
-            copy_head_and_advance(base_type::data(), ints...);
-        }
-
-        constexpr base_type& base() noexcept { return *this; }
-        constexpr const base_type& base() const noexcept { return *this; }
-    };
-
     template <rank_type Rank>
-    using extents_template = arraylike<extent_type, Rank>;
+    using extents_template = array_par<extent_type, Rank>;
     template <rank_type Rank>
-    using indices_template = arraylike<index_type, Rank>;
+    using indices_template = array_par<index_type, Rank>;
 
     template <typename T, typename U, rank_type Rank>
     constexpr bool is_within_extents(const std::array<T, Rank>& idx,

@@ -13,7 +13,7 @@
 namespace sx {
 
 template <typename T, typename U, rank_type Rank>
-constexpr size_type linear_index(details::arraylike<T, Rank> x, details::arraylike<U, Rank> strides)
+constexpr size_type linear_index(details::array_par<T, Rank> x, details::array_par<U, Rank> strides)
 {
     size_type s = 0;
     for (int i = 0; i < Rank; ++i)
