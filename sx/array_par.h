@@ -8,14 +8,20 @@
 
 namespace sx {
 
+#if __cplusplus < 201400
+#define CONSTEXPR14
+#else
+#define CONSTEXPR14 constexpr
+#endif
+
 namespace detail {
     template <typename T, typename H>
-    constexpr void copy_head_and_advance(T* b, H h) noexcept
+    CONSTEXPR14 void copy_head_and_advance(T* b, H h) noexcept
     {
         *b = h;
     }
     template <typename T, typename H, typename... Tail>
-    constexpr void copy_head_and_advance(T* b, H h, Tail... tail) noexcept
+    CONSTEXPR14 void copy_head_and_advance(T* b, H h, Tail... tail) noexcept
     {
         *b = h;
         copy_head_and_advance(b + 1, tail...);
@@ -55,7 +61,7 @@ struct array_par
     using typename base_type::value_type;
 
     // default constructor
-    constexpr array_par() noexcept
+    CONSTEXPR14 array_par() noexcept
     {
         this->fill(0);
     }
@@ -70,32 +76,33 @@ struct array_par
     }
 
     // op= from array_par of same type
-    constexpr array_par& operator=(const array_par&) noexcept = default;
+    CONSTEXPR14 array_par& operator=(const array_par&) noexcept = default;
 
     //  op= from std::array of same type
-    constexpr array_par& operator=(const base_type& x) noexcept
+    CONSTEXPR14 array_par& operator=(const base_type& x) noexcept
     {
         base_type::operator=(x);
         return *this;
     }
 
     // contruct from value of list of values
-    constexpr array_par(value_type v) noexcept
+    CONSTEXPR14 array_par(value_type v) noexcept
     {
         static_assert(Rank == 1, "Single-value constructor can be used only if Rank == 1");
         (*this)[0] = v;
     }
     template <typename... Ts,
         typename = std::enable_if_t<sizeof...(Ts) == Rank> >
-    constexpr array_par(Ts... ts) noexcept
+    CONSTEXPR14 array_par(Ts... ts) noexcept
     {
         detail::copy_head_and_advance(base_type::data(), ts...);
     }
 
     // base observers
-    constexpr base_type& base() noexcept { return *this; }
+    CONSTEXPR14 base_type& base() noexcept { return *this; }
     constexpr const base_type& base() const noexcept { return *this; }
 };
+#undef CONSTEXPR14
 }
 
 #endif
