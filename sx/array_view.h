@@ -5,7 +5,9 @@
 #include "sx/type_traits.h"
 #include <utility>
 #include <numeric>
+#include <vector>
 #include <cmath>
+#include <string>
 
 #include "range/utility/static_const.hpp"
 #include "range/range_traits.hpp"
@@ -16,9 +18,7 @@
 namespace sx {
 
 using rank_type = std::size_t;
-using index_type = std::size_t;
-using size_type = std::size_t;
-using extent_type = std::size_t;
+using size_t = std::size_t;
 
 template <typename T, rank_type Rank>
 class array_view;
@@ -146,7 +146,6 @@ namespace details {
     using slice_return_type_t =
         typename slice_return_type<ViewType, ValueType, Rank>::type;
 
-
     template <int N, typename T, typename... Ts>
     struct all_integrals_helper {
         static constexpr bool value = std::is_integral<T>::value
@@ -164,9 +163,9 @@ namespace details {
     };
 
     template <rank_type Rank>
-    using extents_template = array_par<extent_type, Rank>;
+    using extents_template = array_par<size_t, Rank>;
     template <rank_type Rank>
-    using indices_template = array_par<index_type, Rank>;
+    using indices_template = array_par<size_t, Rank>;
 
     template <typename T, typename U, rank_type Rank>
     constexpr bool is_within_extents(const std::array<T, Rank>& idx,
@@ -260,7 +259,7 @@ struct smart_index_base {
         K_FROM_END,
         K_LENGTH };
 
-    const index_type value;
+    const size_t value;
     const kind_t kind;
 
     template <typename I>
@@ -271,7 +270,7 @@ struct smart_index_base {
     }
 
     //returns the absolute, resolved index
-    constexpr index_type index(index_type begin_idx, extent_type extent) const
+    constexpr size_t index(size_t begin_idx, size_t extent) const
     {
         if (kind == K_ABSOLUTE)
             return value;
@@ -284,7 +283,7 @@ struct smart_index_base {
     }
 
     //returns the absolute, resolved index, assumes the kind is not length
-    constexpr index_type index_when_not_length(extent_type extent) const
+    constexpr size_t index_when_not_length(size_t extent) const
     {
         if (kind == K_ABSOLUTE)
             return value;
@@ -327,7 +326,7 @@ public:
     }
 
     //resolves absolute index
-    constexpr index_type index(extent_type extent) const
+    constexpr size_t index(size_t extent) const
     {
         return smart_index_base::index_when_not_length(extent);
     }
@@ -383,7 +382,7 @@ struct slice_bounds {
 
     //resolves the length of the slice given the extent
     //of the entire dimension (`end` resolves to `extent`)
-    constexpr extent_type length(extent_type extent) const
+    constexpr size_t length(size_t extent) const
     {
         return to_or_length.kind == ::sx::smart_index_base::K_LENGTH
             ? to_or_length.value
@@ -398,9 +397,7 @@ class array_view {
 public:
     // types, constants
     using rank_type = ::sx::rank_type;
-    using index_type = ::sx::index_type;
-    using size_type = ::sx::size_type;
-    using extent_type = ::sx::extent_type;
+    using size_type = ::sx::size_t;
     using indices_type = details::indices_template<Rank>;
     using extents_type = details::extents_template<Rank>;
     using value_type = typename std::remove_const<T>::type;
@@ -423,10 +420,10 @@ public:
     }
 
     // fundamental ctor
-    constexpr array_view(pointer data, extents_type extents, indices_type stride) noexcept
+    constexpr array_view(pointer data, extents_type extents, indices_type strides) noexcept
         : data_ptr(data),
           bnd(extents),
-          srd(stride)
+          srd(strides)
     {
     }
     constexpr array_view(pointer data, extents_type extents, array_layout_t layout) noexcept
@@ -466,7 +463,7 @@ public:
             && details::is_viewable<Viewable, value_type>::value
             && !details::is_array_view<Viewable>::value> >
     _CONSTEXPR array_view(Viewable&& cont)
-        : array_view(cont.data(), static_cast<extent_type>(cont.size()), 1)
+        : array_view(cont.data(), static_cast<size_t>(cont.size()), 1)
     {
     }
 
@@ -525,11 +522,11 @@ public:
     // observers
     constexpr pointer data() const noexcept { return data_ptr; }
 
-    constexpr const std::array<extent_type, Rank>& extents() const noexcept { return bnd; }
-    constexpr extent_type extents(rank_type i) const noexcept { return bnd[i]; }
+    constexpr const std::array<size_t, Rank>& extents() const noexcept { return bnd; }
+    constexpr size_t extents(rank_type i) const noexcept { return bnd[i]; }
 
-    constexpr const std::array<index_type, Rank>& strides() const noexcept { return srd; }
-    constexpr index_type strides(rank_type i) const noexcept { return srd[i]; }
+    constexpr const std::array<size_t, Rank>& strides() const noexcept { return srd; }
+    constexpr size_t strides(rank_type i) const noexcept { return srd[i]; }
 
     constexpr size_type size() const noexcept
     {
@@ -564,7 +561,7 @@ public:
     //however I'm not sure a variadic template could handle
     //the case where slice_bounds is initialized with {x, y} which has no
     //type on its own
-    constexpr reference operator()(index_type x) const noexcept
+    constexpr reference operator()(size_t x) const noexcept
     {
         static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
         return data_ptr[x * srd[0]];
@@ -574,17 +571,17 @@ public:
         static_assert(Rank == 1, "operator() must be called with Rank number of arguments");
         return array_view<T, 1>(data_ptr, x.length(bnd[0]), srd);
     }
-    constexpr reference operator()(index_type x, index_type y) const noexcept
+    constexpr reference operator()(size_t x, size_t y) const noexcept
     {
         static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
         return data_ptr[x * srd[0] + y * srd[1]];
     }
-    constexpr array_view<T, 1> operator()(slice_bounds x, index_type y) const noexcept
+    constexpr array_view<T, 1> operator()(slice_bounds x, size_t y) const noexcept
     {
         static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
         return array_view<T, 1>(data_ptr + x.from.index(bnd[0]) * srd[0] + y * srd[1], x.length(bnd[0]), srd[0]);
     }
-    constexpr array_view<T, 1> operator()(index_type x, slice_bounds y) const noexcept
+    constexpr array_view<T, 1> operator()(size_t x, slice_bounds y) const noexcept
     {
         static_assert(Rank == 2, "operator() must be called with Rank number of arguments");
         return array_view<T, 1>(data_ptr + x * srd[0] + y.from.index(bnd[1]) * srd[1], y.length(bnd[1]), srd[1]);
@@ -636,7 +633,7 @@ private:
         assert(extents(0) == ranges::end(x) - ranges::begin(x));
         auto it = ranges::begin(x);
         //        auto e = ranges::end(x);
-        for (index_type i = 0; i < extents(0); ++i, ++it)
+        for (size_t i = 0; i < extents(0); ++i, ++it)
             (*this)[i] = *it;
     }
     void prepare_iterator(iterator& it) const
@@ -647,7 +644,7 @@ private:
         std::sort(
             make_random_access_iterator_pair(strides.begin(), it.dim_permut.begin()),
             make_random_access_iterator_pair(strides.end(), it.dim_permut.end()));
-        extent_type s = 1;
+        size_t s = 1;
         for (int i = 0; i < Rank; ++i) {
             auto dpi = it.dim_permut[i];
             s *= extents(dpi);
@@ -668,7 +665,8 @@ public:
         array_view const* that = nullptr;
         indices_type idx;
         std::array<int, Rank> dim_permut; //strides[dim_permut[i]] is sorted
-        std::array<extent_type, Rank> cumprod_extents; //cumprod in the order of dim_permut
+        std::array<size_t, Rank> cumprod_extents; //cumprod in the order of dim_permut
+        // cumprod_extents[dim_permut[i]] = strides[dim_permut[0]] * .. * strides[dim_permut[i]]
 
         using iterator_base = std::iterator<std::random_access_iterator_tag,
             value_type, std::ptrdiff_t, pointer, reference>;
@@ -749,17 +747,17 @@ public:
         }
         //like x % y but the handling of negative x is such that
         //the cyclic pattern of the remainder continues
-        static inline extent_type cyclic_remainder(difference_type x, extent_type y)
+        static inline size_t cyclic_remainder(difference_type x, size_t y)
         {
             assert(y > 0);
             if (x >= 0)
                 return x % y;
             return (y - (-x % y)) % y;
         }
-        index_type to_linear_idx() const
+        size_t to_linear_idx() const
         {
-            index_type r = 0;
-            extent_type cextj_prev = 1;
+            size_t r = 0;
+            size_t cextj_prev = 1;
             for (rank_type i = 0; i < Rank; ++i) {
                 auto j = dim_permut[i];
                 r += cextj_prev * idx[j];
@@ -767,13 +765,13 @@ public:
             }
             return r;
         }
-        void from_linear_idx(index_type n, indices_type& result) const
+        void from_linear_idx(size_t n, indices_type& result) const
         {
             assert(0 <= n && n <= cumprod_extents[dim_permut[Rank - 1]]);
-            extent_type cextj_prev = 1;
+            size_t cextj_prev = 1;
             for (rank_type i = 0; n != 0 && i < Rank; ++i) {
                 auto j = dim_permut[i];
-                const extent_type cextj = cumprod_extents[j];
+                const size_t cextj = cumprod_extents[j];
                 result[j] = cyclic_remainder(n, cextj) / cextj_prev;
                 n -= result[j] * cextj_prev;
                 cextj_prev = cextj;
@@ -934,13 +932,13 @@ std::string mat2str(array_view<T, 2> x)
     std::string result;
     result = "[";
     bool first_row = true;
-    for (index_type i = 0; i < x.extents(0); ++i) {
+    for (size_t i = 0; i < x.extents(0); ++i) {
         if (!first_row)
             result += ";";
         else
             first_row = false;
         bool first_col = true;
-        for (index_type j = 0; j < x.extents(1); ++j) {
+        for (size_t j = 0; j < x.extents(1); ++j) {
             if (!first_col)
                 result += " ";
             else

@@ -70,7 +70,7 @@ multi_array<T, Rank> sortperm(array_view<U, Rank> X, int dim = 0)
     std::vector<T> w(X.extents(dim));
 
     // iterate over X, fixing it[dim] to 0
-    std::array<index_type, Rank> lower_bounds, it, e;
+    std::array<size_t, Rank> lower_bounds, it, e;
     lower_bounds.fill(0);
     it.fill(0);
     std::copy_n(X.extents().begin(), Rank, e.begin());
@@ -104,14 +104,14 @@ indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout)
 {
 
     auto extents = X.extents();
-    std::array<extent_type, Rank - 1> extents_dim;
+    std::array<size_t, Rank - 1> extents_dim;
     std::rotate(extents.begin() + dim, extents.begin() + dim + 1, extents.end());
     std::copy_n(extents.begin(), Rank - 1, extents_dim.begin());
 
     multi_array<std::remove_const_t<T>, Rank - 1> R(extents_dim, layout);
 
     // iterate over X, fixing it[dim] to 0
-    std::array<index_type, Rank> lower_bounds, it, e;
+    std::array<size_t, Rank> lower_bounds, it, e;
     lower_bounds.fill(0);
     it.fill(0);
     std::copy_n(X.extents().begin(), Rank, e.begin());
@@ -123,7 +123,7 @@ indmax_along(array_view<T, Rank> X, rank_type dim, array_layout_t layout)
         auto it_rot(it);
         std::rotate(it_rot.begin() + dim, it_rot.begin() + dim + 1, it_rot.end());
         //todo this could be done without a copy with a reinterpret_cast
-        std::array<extent_type, Rank - 1> it_dim;
+        std::array<size_t, Rank - 1> it_dim;
         std::copy_n(it_rot.begin(), Rank - 1, it_dim.begin());
         R[it_dim] = it_max - xv.begin();
 

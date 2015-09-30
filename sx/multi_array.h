@@ -101,7 +101,7 @@ public:
     //however I'm not sure a variadic template could handle
     //the case where slice_bounds is initialized with {x, y} which has no
     //type on its own
-    constexpr const_reference operator()(index_type x) const noexcept
+    constexpr const_reference operator()(size_t x) const noexcept
     {
         return view()(x);
     }
@@ -109,15 +109,15 @@ public:
     {
         return view()(x);
     }
-    constexpr const_reference operator()(index_type x, index_type y) const noexcept
+    constexpr const_reference operator()(size_t x, size_t y) const noexcept
     {
         return view()(x, y);
     }
-    constexpr array_view<const T, 1> operator()(slice_bounds x, index_type y) const noexcept
+    constexpr array_view<const T, 1> operator()(slice_bounds x, size_t y) const noexcept
     {
         return view()(x, y);
     }
-    constexpr array_view<const T, 1> operator()(index_type x, slice_bounds y) const noexcept
+    constexpr array_view<const T, 1> operator()(size_t x, slice_bounds y) const noexcept
     {
         return view()(x, y);
     }
@@ -125,7 +125,7 @@ public:
     {
         return view()(x, y);
     }
-    constexpr reference operator()(index_type x) noexcept
+    constexpr reference operator()(size_t x) noexcept
     {
         return view()(x);
     }
@@ -133,15 +133,15 @@ public:
     {
         return view()(x);
     }
-    constexpr reference operator()(index_type x, index_type y) noexcept
+    constexpr reference operator()(size_t x, size_t y) noexcept
     {
         return view()(x, y);
     }
-    constexpr array_view<T, 1> operator()(slice_bounds x, index_type y) noexcept
+    constexpr array_view<T, 1> operator()(slice_bounds x, size_t y) noexcept
     {
         return view()(x, y);
     }
-    constexpr array_view<T, 1> operator()(index_type x, slice_bounds y) noexcept
+    constexpr array_view<T, 1> operator()(size_t x, slice_bounds y) noexcept
     {
         return view()(x, y);
     }

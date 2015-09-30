@@ -11,7 +11,6 @@ void f(array_par<int, 3> v, int d)
 
 int main(int argc, const char* argv[])
 {
-
     {
         array_par<int, 3> a;
         for (auto i : a)
