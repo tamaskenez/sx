@@ -167,9 +167,9 @@ namespace details {
     template <rank_type Rank>
     using indices_template = array_par<size_t, Rank>;
 
-    template <typename T, typename U, rank_type Rank>
-    constexpr bool is_within_extents(const std::array<T, Rank>& idx,
-        const std::array<U, Rank>& extents) noexcept
+    template <rank_type Rank, typename T, typename U>
+    constexpr bool is_within_extents(T&& idx,
+        U&& extents) noexcept
     {
         for (rank_type i = 0; i < Rank; ++i) {
             if (idx[i] < 0 || idx[i] >= extents[i])
@@ -404,7 +404,7 @@ public:
     using pointer = T*;
     using reference = T&;
 
-    static constexpr rank_type rank = Rank;
+    constexpr rank_type rank() const { return Rank; }
 
 protected:
     // state
@@ -424,6 +424,14 @@ public:
         : data_ptr(data),
           bnd(extents),
           srd(strides)
+    {
+    }
+
+    // this ctor works only if rank == 1
+    constexpr array_view(pointer data, extents_type extents) noexcept
+        : data_ptr(data),
+          bnd(extents),
+          srd(1)
     {
     }
     constexpr array_view(pointer data, extents_type extents, array_layout_t layout) noexcept
@@ -447,8 +455,7 @@ public:
     template <typename U,
         typename = std::enable_if_t<std::is_convertible<std::add_pointer_t<U>,
                                         pointer>::value
-            && std::is_same<std::remove_cv_t<U>,
-                                        std::remove_cv_t<value_type> >::value> >
+            && std::is_same<U, value_type>::value> >
     constexpr array_view(
         const array_view<U, Rank>& rhs) noexcept
         : array_view(rhs.data(), rhs.extents(), rhs.strides())
@@ -489,7 +496,7 @@ public:
             && std::is_same<std::remove_cv_t<U>,
                                         std::remove_cv_t<value_type> >::value> >
     constexpr array_view& operator=(
-        const array_view<U, rank>& rhs) noexcept
+        const array_view<U, Rank>& rhs) noexcept
     {
         bnd = rhs.extents();
         srd = rhs.strides();
@@ -531,7 +538,7 @@ public:
     constexpr size_type size() const noexcept
     {
         size_type ret = bnd[0];
-        for (rank_type i = 1; i < rank; ++i)
+        for (rank_type i = 1; i < Rank; ++i)
             ret *= bnd[i];
         return ret;
     }
@@ -548,9 +555,9 @@ public:
     // element access
     constexpr reference operator[](const indices_type& idx) const noexcept
     {
-        assert(is_within_extents(idx, bnd));
+        assert(details::is_within_extents<Rank>(idx, bnd));
         auto ptr = data_ptr;
-        for (int i = 0; i < rank; i++) {
+        for (int i = 0; i < Rank; i++) {
             ptr += idx[i] * srd[i];
         }
         return *ptr;
@@ -606,7 +613,8 @@ public:
     {
         iterator it;
         prepare_iterator(it);
-        it.idx = bnd;
+        int i = it.dim_permut.back();
+        it.idx[i] = bnd[i];
         return it;
     }
 
